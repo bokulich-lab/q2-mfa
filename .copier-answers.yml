@@ -9,10 +9,10 @@ _src_path: https://github.com/caporaso-lab/plugin-template.git
 author_email: rischv@ethz.ch
 author_name: Vinzent Risch
 license: BSD-3-Clause
-module_name: mfa
+module_name: q2_mfa
 package_name: q2-mfa
 plugin_description: A QIIME 2 plugin for PCA and MFA analysis.
-plugin_name: q2_mfa
+plugin_name: mfa
 plugin_short_description: PCA and MFA analysis
 project_url: https://github.com/bokulich-lab/q2-mfa
 target_distro: tiny

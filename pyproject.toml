@@ -12,7 +12,7 @@ dynamic = ["version"]
 Homepage = "https://github.com/bokulich-lab/q2-mfa"
 
 [project.entry-points.'qiime2.plugins']
-"q2-mfa" = "mfa.plugin_setup:plugin"
+"q2-mfa" = "q2_mfa.plugin_setup:plugin"
 
 [build-system]
 requires = [
@@ -36,7 +36,7 @@ dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
 distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
 
 [tool.versioningit.write]
-file = "mfa/_version.py"
+file = "q2_mfa/_version.py"
 
 [tool.versioningit]
 default-version = "0.0.dev0"
@@ -46,7 +46,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mfa*"]
+include = ["q2_mfa*"]
 
 [tool.setuptools.package-data]
 mfa = ["**/*"]
