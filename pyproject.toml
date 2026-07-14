@@ -43,6 +43,10 @@ default-version = "0.0.dev0"
 
 [tool.setuptools]
 include-package-data = true
+script-files = [
+    "q2_mfa/assets/r_scripts/impute_imputelcmd.R",
+    "q2_mfa/assets/r_scripts/impute_missforest.R",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

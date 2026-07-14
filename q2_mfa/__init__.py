@@ -6,6 +6,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
+from .pretreat_metabolome import pretreat_metabolome
 from .transform_clr import transform_clr
 
 try:
@@ -13,4 +14,4 @@ try:
 except ModuleNotFoundError:
     __version__ = "0.0.0+notfound"
 
-__all__ = ["transform_clr"]
+__all__ = ["transform_clr", "pretreat_metabolome"]
