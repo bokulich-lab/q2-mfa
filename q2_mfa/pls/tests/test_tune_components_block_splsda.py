@@ -17,7 +17,7 @@ from rachis.plugin.testing import TestPluginBase
 from rpy2.robjects import r
 
 from q2_mfa.pls import PLSTuneComponentsDirFmt
-from q2_mfa.pls.jsonl_descriptions import jsonl_descriptions
+from q2_mfa.pls.descriptions import jsonl_descriptions
 from q2_mfa.pls.tune_components_block_splsda import (
     _error_rate_metadata,
     _print_component_choice,

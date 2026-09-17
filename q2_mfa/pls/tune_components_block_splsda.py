@@ -14,7 +14,7 @@ from rachis import CategoricalMetadataColumn, Metadata
 from rachis.plugin import CaptureHolder
 from rpy2.robjects import r
 
-from q2_mfa.pls.jsonl_descriptions import jsonl_descriptions
+from q2_mfa.pls.descriptions import jsonl_descriptions, report_descriptions
 from q2_mfa.pls.types._format import PLSTuneComponentsDirFmt
 from q2_mfa.pls.utils import (
     _build_bpparam,
@@ -218,7 +218,8 @@ def _tune_components_block_visualisation(ctx, tune_components):
 
     Plots overall weighted- and majority-vote error rates, tabulates both
     component-choice matrices, and combines the resulting visualizations into
-    a report.
+    a report with Markdown guidance describing each diagnostic and the
+    significance-based component-selection rule.
 
     Args:
         ctx (Context): Pipeline execution context used to retrieve actions and
@@ -268,12 +269,20 @@ def _tune_components_block_visualisation(ctx, tune_components):
             "Weighted vote": weighted_error_rate_plot,
             "Majority vote": majority_error_rate_plot,
         },
+        descriptions={
+            "Weighted vote": report_descriptions["error_rate_weighted"],
+            "Majority vote": report_descriptions["error_rate_majority"],
+        },
     )
     choice_matrix_report = ctx.make_report(
         matryoshka_template,
         {
             "Weighted vote": weighted_choice_matrix,
             "Majority vote": majority_choice_matrix,
+        },
+        descriptions={
+            "Weighted vote": report_descriptions["choice_matrix_weighted"],
+            "Majority vote": report_descriptions["choice_matrix_majority"],
         },
     )
     report = ctx.make_report(
