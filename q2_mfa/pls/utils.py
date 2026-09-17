@@ -27,6 +27,9 @@ def _align_samples_metadata(ctx, tables, metadata_column):
     """
     Aligns feature tables and a metadata column to shared samples.
 
+    Requires at least two feature tables, removes missing metadata values, and
+    restricts every remaining input to the sample IDs they share.
+
     - Removes missing metadata values.
     - Identifies IDs shared by the remaining column and every feature table
     - Filters the metadata column to those IDs.
@@ -41,7 +44,14 @@ def _align_samples_metadata(ctx, tables, metadata_column):
         tuple[ResultCollection, Metadata]: A tuple containing:
             - ResultCollection: Tables filtered to the shared sample IDs.
             - Metadata: Aligned metadata containing the supplied column.
+
+    Raises:
+        ValueError: If fewer than two feature tables are supplied or no samples
+            are shared by the feature tables and metadata column.
     """
+    if len(tables) < 2:
+        raise ValueError("At least two feature tables are required.")
+
     filter_ids = ctx.get_action("feature_table", "filter_ids")
     metadata_column = metadata_column.drop_missing_values()
     shared_ids = metadata_column.get_ids()

@@ -111,6 +111,18 @@ class TestPLSUtils(TestPluginBase):
                 metadata_column=self.alignment_metadata,
             )
 
+    def test_single_feature_table_raises_error(self):
+        single_table = ResultCollection({"block-a": self.alignment_tables["block-a"]})
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "^At least two feature tables are required\\.$",
+        ):
+            self.align_samples(
+                tables=single_table,
+                metadata_column=self.alignment_metadata,
+            )
+
     def test_resolve_design_rejects_missing_design_options(self):
         with self.assertRaisesRegex(
             ValueError, "Provide exactly one of 'design-matrix' or 'design-weight'."
