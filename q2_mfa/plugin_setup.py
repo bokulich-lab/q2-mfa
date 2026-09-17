@@ -116,7 +116,7 @@ plugin.pipelines.register_function(
     },
     output_descriptions={
         "aligned_tables": "Feature tables restricted to their shared sample IDs.",
-        "aligned_metadata": ("The aligned metadata column."),
+        "aligned_metadata": "The aligned metadata column.",
     },
     name="Align samples and metadata column",
     description=(
