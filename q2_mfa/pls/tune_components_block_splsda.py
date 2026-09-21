@@ -46,34 +46,9 @@ def _tune_components_block_splsda(
 
     Aligns the input blocks and categorical response, fits a dense block
     sPLS-DA (DIABLO) model as documented for component tuning in the mixOmics
-    vignette,
-    evaluates its component counts by cross-validation, and serializes
+    vignette, evaluates its component counts by cross-validation, and serializes
     weighted- and majority-vote diagnostics as a component-tuning directory
     format.
-
-    Args:
-        tables (ResultCollection): Named feature-table artifacts used for block
-            sPLS-DA (DIABLO).
-        y (CategoricalMetadataColumn): Categorical response labels for the
-            samples.
-        design_matrix (Metadata, optional): Explicit block-relationship design
-            matrix.
-        design_weight (float, optional): Shared off-diagonal relationship
-            weight used when no design matrix is supplied.
-        ncomp (int): Number of latent components to fit and evaluate.
-        scale (bool): Whether to standardize features within every block.
-        tol (float): Convergence tolerance for the iterative model fit.
-        max_iter (int): Maximum iterations for each model fit.
-        near_zero_var (bool): Whether to remove zero or near-zero variance
-            predictors before fitting.
-        validation (str): Cross-validation strategy accepted by mixOmics.
-        folds (int): Number of folds used for M-fold cross-validation.
-        nrepeat (int): Number of cross-validation repetitions.
-        signif_threshold (float): Minimum error-rate improvement required to
-            retain an additional component.
-        seed (CaptureHolder[int], optional): Random seed holder used for
-            reproducible cross-validation.
-        threads (int): Number of BiocParallel workers to use.
 
     Returns:
         PLSTuneComponentsDirFmt: Serialized weighted- and majority-vote error
@@ -152,32 +127,6 @@ def tune_components_block_splsda(
 
     Runs the component-tuning method and delegates diagnostic visualization
     generation to the component-tuning visualization pipeline.
-
-    Args:
-        ctx (Context): Pipeline execution context used to retrieve actions and
-            create reports.
-        tables (ResultCollection): Named feature-table artifacts used for block
-            sPLS-DA (DIABLO).
-        y (CategoricalMetadataColumn): Categorical response labels for the
-            samples.
-        design_matrix (Metadata, optional): Explicit block-relationship design
-            matrix.
-        design_weight (float, optional): Shared off-diagonal relationship
-            weight used when no design matrix is supplied.
-        ncomp (int): Number of latent components to fit and evaluate.
-        scale (bool): Whether to standardize features within every block.
-        tol (float): Convergence tolerance for the iterative model fit.
-        max_iter (int): Maximum iterations for each model fit.
-        near_zero_var (bool): Whether to remove zero or near-zero variance
-            predictors before fitting.
-        validation (str): Cross-validation strategy accepted by mixOmics.
-        folds (int): Number of folds used for M-fold cross-validation.
-        nrepeat (int): Number of cross-validation repetitions.
-        signif_threshold (float): Minimum error-rate improvement required to
-            retain an additional component.
-        seed (int, optional): Random seed used for reproducible
-            cross-validation.
-        threads (int): Number of BiocParallel workers to use.
 
     Returns:
         tuple[Artifact, Visualization]: The component-tuning artifact and a
@@ -355,18 +304,6 @@ def _r_choice_matrix_to_dataframe(perf_result, vote: str) -> pd.DataFrame:
 
 
 def _print_component_choice(choice_table: pd.DataFrame, vote: str) -> None:
-    """
-    Prints a component-choice matrix.
-
-    Formats the table for user-visible action output.
-
-    Args:
-        choice_table (pd.DataFrame): Component-choice matrix to display.
-        vote (str): Vote type represented by the matrix.
-
-    Returns:
-        None: This function writes the formatted message to standard output.
-    """
     print(f"{vote} component-choice matrix:\n", flush=True)
     print(f"{choice_table.to_string()}\n", flush=True)
 
