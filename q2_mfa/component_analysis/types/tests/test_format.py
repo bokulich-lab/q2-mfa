@@ -15,8 +15,8 @@ from q2_types.tabular._deferred_setup._transformers import table_jsonl_to_df
 from rachis.plugin.testing import TestPluginBase
 from skbio import OrdinationResults
 
-from q2_mfa.types import ComponentAnalysisDirFmt, ComponentAnalysisResult
-from q2_mfa.types._transformer import _TABLE_SPECS, _TableSpec
+from q2_mfa.component_analysis import ComponentAnalysisDirFmt, ComponentAnalysisResult
+from q2_mfa.component_analysis.types._transformer import _TABLE_SPECS, _TableSpec
 
 _FEATURE_TABLE_ATTRS = (
     "feature_coordinates",
@@ -27,7 +27,7 @@ _FEATURE_TABLE_ATTRS = (
 
 
 class TestComponentAnalysisFormatRegression(TestPluginBase):
-    package = "q2_mfa.types.tests"
+    package = "q2_mfa.component_analysis.types.tests"
 
     @classmethod
     def setUpClass(cls):

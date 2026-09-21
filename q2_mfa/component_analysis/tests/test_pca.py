@@ -16,18 +16,18 @@ import prince
 from rachis.core.exceptions import RachisWarning
 from rachis.plugin.testing import TestPluginBase
 
-from q2_mfa.pca import (
+from q2_mfa.component_analysis.pca import (
     create_result_object,
     drop_columns_with_missing_values,
     drop_zero_variance_columns,
     pca,
     resolve_random_state,
 )
-from q2_mfa.types import ComponentAnalysisResult
+from q2_mfa.component_analysis.types import ComponentAnalysisResult
 
 
 class TestPCA(TestPluginBase):
-    package = "q2_mfa.tests"
+    package = "q2_mfa.component_analysis.tests"
 
     def setUp(self):
         super().setUp()

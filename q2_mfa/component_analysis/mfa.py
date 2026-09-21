@@ -15,13 +15,13 @@ from rachis import Metadata
 from rachis.core.exceptions import RachisWarning
 from rachis.plugin import CaptureHolder
 
-from q2_mfa.pca import (
+from q2_mfa.component_analysis.pca import (
     create_result_object,
     drop_columns_with_missing_values,
     drop_zero_variance_columns,
     resolve_random_state,
 )
-from q2_mfa.types import ComponentAnalysisResult
+from q2_mfa.component_analysis.types import ComponentAnalysisResult
 
 
 def _parse_metadata_groups(

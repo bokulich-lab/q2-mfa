@@ -1,0 +1,3 @@
+{"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"max.dist","type":"integer","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"","extra":{}}
+{"id":"Overall.BER","max.dist":2}
+{"id":"Overall.ER","max.dist":1}

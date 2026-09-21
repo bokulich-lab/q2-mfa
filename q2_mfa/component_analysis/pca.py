@@ -13,7 +13,7 @@ import prince
 from rachis.core.exceptions import RachisWarning
 from rachis.plugin import CaptureHolder
 
-from q2_mfa.types import ComponentAnalysisResult
+from q2_mfa.component_analysis import ComponentAnalysisResult
 
 
 def resolve_random_state(random_state: CaptureHolder[int] | None, engine: str):

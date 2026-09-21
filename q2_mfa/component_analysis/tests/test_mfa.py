@@ -17,19 +17,19 @@ from rachis import Metadata
 from rachis.core.exceptions import RachisWarning
 from rachis.plugin.testing import TestPluginBase
 
-from q2_mfa.mfa import (
+from q2_mfa.component_analysis.mfa import (
     _build_prince_input,
     _metadata_to_grouped_tables,
     _parse_metadata_groups,
     _validate_metadata_group_column_types,
     mfa,
 )
-from q2_mfa.pca import create_result_object
-from q2_mfa.types import ComponentAnalysisResult
+from q2_mfa.component_analysis.pca import create_result_object
+from q2_mfa.component_analysis.types import ComponentAnalysisResult
 
 
 class TestMFA(TestPluginBase):
-    package = "q2_mfa.tests"
+    package = "q2_mfa.component_analysis.tests"
 
     @classmethod
     def setUpClass(cls):

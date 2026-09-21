@@ -23,15 +23,23 @@ requirements:
     - versioningit
 
   run:
+    - bioconductor-mixomics
     - pandas
     - prince-factor-analysis
-    - scikit-bio
-    - qiime2 >={{ qiime2 }}
+    - q2-feature-table >={{ q2_feature_table }}
+    - q2-metadata >={{ q2_metadata }}
     - q2-types >={{ q2_types }}
+    - q2-vizard >={{ q2_vizard }}
+    - qiime2 >={{ qiime2 }}
+    - rpy2
+    - scikit-bio
 
 test:
   requires:
     - parameterized
+  imports:
+    - q2_mfa
+    - qiime2.plugins.mfa
   commands:
     - pytest --pyargs q2_mfa
 
