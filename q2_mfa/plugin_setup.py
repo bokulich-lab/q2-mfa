@@ -32,8 +32,13 @@ from q2_mfa.pls import (
     AssociationMatrixDirFmt,
     PLSComponentSelection,
     PLSComponentSelectionDirFmt,
+    PLSFeatureSelection,
+    PLSFeatureSelectionDirFmt,
+    _feature_selection_block_splsda,
+    _feature_selection_block_splsda_visualiser,
     _tune_components_block_splsda,
     _tune_components_block_visualisation,
+    feature_selection_block_splsda,
     tune_components_block_splsda,
 )
 from q2_mfa.preprocessing import transform_clr
@@ -292,6 +297,59 @@ component_tuning_input_descriptions = {
     ),
 }
 
+feature_selection_parameters = {
+    **component_tuning_parameters,
+    "ncomp": Int % Range(1, None),
+    "keepx": Collection[Str],
+    "already_tested_x": Collection[Str],
+    "distance": Str % Choices("max.dist", "centroids.dist", "mahalanobis.dist"),
+    "measure": Str % Choices("overall", "BER"),
+    "weighted": Bool,
+}
+
+feature_selection_parameter_descriptions = {
+    **component_tuning_parameter_descriptions,
+    "ncomp": (
+        "Number of components to tune. Provide exactly one of this value or a "
+        "tuned-ncomp artifact."
+    ),
+    "keepx": (
+        "Named comma-separated candidate feature counts for every input "
+        'block. For example, microbiome="5,10" and '
+        'metabolomics="20,40" test all four count pairs (5,20), '
+        "(5,40), (10,20), and (10,40) for each component. Every block must "
+        "provide at least one positive integer."
+    ),
+    "already_tested_x": (
+        "Named comma-separated selected keepX counts for previously tuned "
+        'components. For example, microbiome="10,8" and '
+        'metabolomics="40,30" fix component 1 at (10,40) and component '
+        "2 at (8,30), then tune the next component using keepx. Every block "
+        "must provide the same number of selections and the block names must "
+        "match the input tables."
+    ),
+    "distance": (
+        "Prediction distance used to calculate cross-validated classification "
+        "error rates and select keepX values."
+    ),
+    "measure": (
+        "Classification error measure used to select keepX values: overall "
+        "error rate or balanced error rate (BER)."
+    ),
+    "weighted": (
+        "Whether to select keepX values using weighted voting. Disable to use "
+        "majority voting."
+    ),
+}
+
+feature_selection_input_descriptions = {
+    **component_tuning_input_descriptions,
+    "tuned_ncomp": (
+        "Component-tuning artifact used to determine ncomp. Provide exactly "
+        "one of this artifact or ncomp."
+    ),
+}
+
 plugin.methods.register_function(
     function=_tune_components_block_splsda,
     inputs={
@@ -386,15 +444,107 @@ plugin.pipelines.register_function(
     ],
 )
 
+plugin.methods.register_function(
+    function=_feature_selection_block_splsda,
+    inputs={
+        "tables": Collection[FeatureTable[Unconstrained]],
+        "tuned_ncomp": PLSComponentSelection,
+        "design_matrix": AssociationMatrix,
+    },
+    parameters=feature_selection_parameters,
+    outputs=[("feature_selection", PLSFeatureSelection)],
+    input_descriptions=feature_selection_input_descriptions,
+    parameter_descriptions=feature_selection_parameter_descriptions,
+    output_descriptions={
+        "feature_selection": (
+            "Cross-validated keepX error rates and selected feature counts for "
+            "block sPLS-DA (DIABLO) feature selection."
+        )
+    },
+    name="Internal block sPLS-DA (DIABLO) feature selection",
+    description=(
+        "Internal feature-selection action used by the public block sPLS-DA "
+        "(DIABLO) feature-selection pipeline."
+    ),
+    citations=[citations["rohart2017mixomics"]],
+)
+
+plugin.pipelines.register_function(
+    function=_feature_selection_block_splsda_visualiser,
+    inputs={"feature_selection": PLSFeatureSelection},
+    parameters={},
+    outputs=[("visualization", Visualization)],
+    input_descriptions={
+        "feature_selection": (
+            "Cross-validated keepX error rates and selected feature counts "
+            "for block sPLS-DA (DIABLO) feature selection."
+        )
+    },
+    parameter_descriptions={},
+    output_descriptions={
+        "visualization": (
+            "Tabulated feature-selection error rates and selected feature "
+            "counts and, for exactly two blocks, one mean-error heatmap per "
+            "component."
+        )
+    },
+    name="Visualize block sPLS-DA (DIABLO) feature selection",
+    description=(
+        "Creates tables of block sPLS-DA (DIABLO) feature-selection error "
+        "rates and selected feature counts and adds per-component heatmaps "
+        "when exactly two input blocks were tuned."
+    ),
+    citations=[citations["rohart2017mixomics"]],
+)
+
+plugin.pipelines.register_function(
+    function=feature_selection_block_splsda,
+    inputs={
+        "tables": Collection[FeatureTable[Unconstrained]],
+        "tuned_ncomp": PLSComponentSelection,
+        "design_matrix": AssociationMatrix,
+    },
+    parameters=feature_selection_parameters,
+    outputs=[
+        ("feature_selection", PLSFeatureSelection),
+        ("visualization", Visualization),
+    ],
+    input_descriptions=feature_selection_input_descriptions,
+    parameter_descriptions=feature_selection_parameter_descriptions,
+    output_descriptions={
+        "feature_selection": (
+            "Cross-validated keepX error rates and selected feature counts for "
+            "block sPLS-DA (DIABLO) feature selection."
+        ),
+        "visualization": (
+            "Tabulated feature-selection error rates and selected feature "
+            "counts and, for exactly two blocks, one mean-error heatmap per "
+            "component."
+        ),
+    },
+    name="Select block sPLS-DA (DIABLO) features",
+    description=(
+        "Aligns input blocks and the response, tunes sparse feature counts for "
+        "a block sPLS-DA (DIABLO) model with mixOmics, and creates diagnostic "
+        "visualizations. Reported error rates use weighted voting when "
+        "weighted is enabled and majority voting otherwise. The measure "
+        "parameter determines whether overall error rate (ER) or balanced "
+        "error rate (BER) is used."
+    ),
+    citations=[citations["rohart2017mixomics"]],
+)
+
 plugin.register_formats(
     ComponentAnalysisDirFmt,
     PLSComponentSelectionDirFmt,
     AssociationMatrixDirFmt,
+    PLSFeatureSelectionDirFmt,
 )
 plugin.register_semantic_types(
     ComponentAnalysis,
     PLSComponentSelection,
     AssociationMatrix,
+    PLSFeatureSelection,
 )
 plugin.register_artifact_class(
     ComponentAnalysis,
@@ -414,6 +564,12 @@ plugin.register_artifact_class(
     directory_format=AssociationMatrixDirFmt,
     description="Represents a matrix that denotes the association between multiple "
     "omics feature tables.",
+)
+
+plugin.register_artifact_class(
+    PLSFeatureSelection,
+    directory_format=PLSFeatureSelectionDirFmt,
+    description="Represents PLS feature-selection results produced by mixOmics.",
 )
 
 importlib.import_module("q2_mfa.component_analysis.types._transformer")

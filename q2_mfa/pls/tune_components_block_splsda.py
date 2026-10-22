@@ -63,7 +63,7 @@ def _tune_components_block_splsda(
     design = _resolve_design(design_matrix, design_weight, tables.keys())
     resolved_seed = CaptureHolder.get_or_set(seed, lambda: secrets.randbelow(2**31))
     bpparam = _build_bpparam(threads)
-    r_blocks, r_target, r_design = _to_r_inputs(tables, target, design)
+    r_blocks, r_target, r_design, _, _ = _to_r_inputs(tables, target, design)
 
     # Fit the dense model, as documented for component tuning in the mixOmics
     # block sPLS-DA (DIABLO) vignette.

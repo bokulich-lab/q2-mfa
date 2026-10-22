@@ -1,0 +1,3 @@
+{"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"component","type":"integer","missing":false,"title":"","description":"","extra":{}},{"name":"value","type":"integer","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"","extra":{}}
+{"block":"metabolome","component":1,"value":5}
+{"block":"microbiome","component":1,"value":3}
