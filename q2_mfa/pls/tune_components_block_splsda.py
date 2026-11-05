@@ -86,10 +86,9 @@ def _tune_components_block_splsda(
         validation=validation,
         folds=folds,
         nrepeat=nrepeat,
-        signif_threshold=signif_threshold,
         BPPARAM=bpparam,
         seed=resolved_seed,
-        progressBar=False,
+        **{"signif.threshold": signif_threshold},
     )
     weighted_choice_matrix = _r_choice_matrix_to_df(perf_result, "WeightedVote")
     majority_choice_matrix = _r_choice_matrix_to_df(perf_result, "MajorityVote")
