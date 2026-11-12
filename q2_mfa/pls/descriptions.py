@@ -130,3 +130,48 @@ jsonl_descriptions = {
         "perf() choice.ncomp$MajorityVote."
     ),
 }
+
+
+feature_selection_report_descriptions = {
+    "heatmaps": """\
+Each heatmap shows the mean cross-validated classification error rate for the
+tested keepX combinations on one component. The axes give the number of
+features retained in each block. **Lower values are better**, because they
+indicate fewer classification errors. The **Selected features** table reports
+the keepX combination with the lowest mean error rate for each component.
+Components are cumulative: the error rate for component 2 evaluates
+the model using **components 1 and 2 together**. More generally, component k
+evaluates the model using components 1 through k, with earlier components'
+keepX values fixed at their previously tuned or supplied values.""",
+    "error_rates": """\
+The table lists the mean cross-validated error rate and its standard deviation
+for every tested keepX combination and component. **Lower error rates are
+better.** Components are cumulative: the error rate for component 2 evaluates
+the model using **components 1 and 2 together**. More generally, component k
+evaluates the model using components 1 through k, with earlier components'
+keepX values fixed at their previously tuned or supplied values.""",
+    "selected_features": """\
+For each component, the table gives the selected keepX value (number of
+features retained) for each block. These values form the tested combination
+with the lowest mean cross-validated error rate for that component, conditional
+on the keepX values fixed for earlier components. Values supplied through
+**already-tested-x** remain fixed.""",
+}
+
+
+feature_selection_descriptions = {
+    "error_rate": (
+        "Cross-validated mean and standard-deviation classification error "
+        "rates for every tested keepX combination and component from mixOmics "
+        "tune.block.splsda(). Reported error rates use weighted voting when "
+        "the weighted parameter is enabled and majority voting otherwise. The "
+        "measure parameter determines whether they report overall error rate "
+        "(ER) or balanced error rate (BER). The keepx_<block> columns record "
+        "the number of features retained for each input block."
+    ),
+    "selected_features": (
+        "Selected keepX feature-count matrix with one-based components as "
+        "rows and input blocks as columns from mixOmics "
+        "tune.block.splsda() choice.keepX."
+    ),
+}

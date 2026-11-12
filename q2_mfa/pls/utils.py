@@ -10,14 +10,25 @@ import warnings
 import numpy as np
 import pandas as pd
 from rachis.core.exceptions import RachisWarning
-from rpy2.robjects import ListVector, conversion, default_converter, pandas2ri
+from rachis.plugin import CaptureHolder
+from rpy2.robjects import (
+    IntVector,
+    ListVector,
+    conversion,
+    default_converter,
+    pandas2ri,
+    r,
+)
 from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import DataFrame as RDataFrame
-from rpy2.robjects.vectors import FactorVector
+from rpy2.robjects.vectors import FactorVector, Matrix
+
+from q2_mfa.pls.types._format import PLSComponentSelectionDirFmt
 
 base = importr("base")
 biocparallel = importr("BiocParallel")
+_call_without_messages = r("function(fun, ...) suppressMessages(fun(...))")
 
 
 def _align_samples(
@@ -116,7 +127,11 @@ def _to_r_inputs(
     blocks: dict[str, pd.DataFrame],
     target: pd.Series,
     design: pd.DataFrame | float,
-) -> tuple[ListVector, FactorVector, RDataFrame | float]:
+    keep_x: dict[str, list[int]] | None = None,
+    already_tested_x: dict[str, list[int]] | None = None,
+) -> tuple[
+    ListVector, FactorVector, RDataFrame | float, ListVector | None, ListVector | None
+]:
     """
     Converts aligned Python inputs to labelled R objects.
 
@@ -128,10 +143,14 @@ def _to_r_inputs(
         target (pd.Series): Aligned categorical response values.
         design (pd.DataFrame | float): Explicit design matrix or scalar design
             weight.
+        keep_x (dict, optional): Candidate keepX counts by block.
+        already_tested_x (dict, optional): Selected keepX counts for prior
+            components.
 
     Returns:
         tuple[rpy2.robjects.ListVector, rpy2.robjects.vectors.FactorVector,
-        rpy2.robjects.RObject]: Named R blocks, response factor, and design.
+        rpy2.robjects.RObject, ListVector | None, ListVector | None]: Named R
+        blocks, response factor, design, and optional keepX and prior selections.
     """
     with localconverter(default_converter + pandas2ri.converter):
         converter = conversion.get_conversion()
@@ -141,7 +160,39 @@ def _to_r_inputs(
         r_design = converter.py2rpy(design)
         r_target = converter.py2rpy(target)
     r_target = base.factor(r_target)
-    return r_blocks, r_target, r_design
+    r_keep_x, r_already_tested_x = (
+        (
+            ListVector({name: IntVector(values) for name, values in counts.items()})
+            if counts is not None
+            else None
+        )
+        for counts in (keep_x, already_tested_x)
+    )
+    return r_blocks, r_target, r_design, r_keep_x, r_already_tested_x
+
+
+def _r_matrix_to_dataframe(matrix: Matrix) -> pd.DataFrame:
+    """Converts a numeric R matrix to pandas in its labelled row and column order."""
+    return pd.DataFrame(
+        np.asarray(matrix),
+        index=[str(name) for name in matrix.rownames],
+        columns=[str(name) for name in matrix.colnames],
+    )
+
+
+def _r_error_rate_matrices_to_dataframe(
+    mean_rates: Matrix, sd_rates: Matrix, row_name: str
+) -> pd.DataFrame:
+    """Matches SDs to means by row and component in the mean matrix's order."""
+    mean = _r_matrix_to_dataframe(mean_rates).stack(future_stack=True)
+    sd = _r_matrix_to_dataframe(sd_rates).stack(future_stack=True)
+    rates = (
+        pd.DataFrame({"mean": mean, "sd": sd.reindex(mean.index)})
+        .rename_axis(index=[row_name, "component"])
+        .reset_index()
+    )
+    rates["component"] = rates["component"].str.removeprefix("comp").astype("Int64")
+    return rates
 
 
 def _r_perf_error_rate_to_df(perf_result: ListVector, vote: str) -> pd.DataFrame:
@@ -165,27 +216,85 @@ def _r_perf_error_rate_to_df(perf_result: ListVector, vote: str) -> pd.DataFrame
     sd_error_rates = perf_result.rx2(f"{vote}.error.rate.sd")
     tables = []
 
-    for distance, mean_rates, sd_rates in zip(
-        mean_error_rates.names, mean_error_rates, sd_error_rates
-    ):
-        means = np.asarray(mean_rates, dtype=float)
-        standard_deviations = np.asarray(sd_rates, dtype=float)
-        class_names = [str(name) for name in base.rownames(mean_rates)]
-        component_count = means.shape[1]
-        tables.append(
-            pd.DataFrame(
-                {
-                    "distance": str(distance),
-                    "class": np.repeat(class_names, component_count),
-                    "component": np.tile(
-                        np.arange(1, component_count + 1), len(class_names)
-                    ),
-                    "mean": means.ravel(),
-                    "sd": standard_deviations.ravel(),
-                }
-            )
+    for distance, mean_rates in mean_error_rates.items():
+        rates = _r_error_rate_matrices_to_dataframe(
+            mean_rates, sd_error_rates.rx2(distance), "class"
         )
+        rates.insert(0, "distance", distance)
+        tables.append(rates)
 
-    error_rates = pd.concat(tables, ignore_index=True)
-    error_rates["component"] = error_rates["component"].astype("Int64")
-    return error_rates
+    return pd.concat(tables, ignore_index=True)
+
+
+def _resolve_ncomp(
+    ncomp: CaptureHolder[int],
+    tuned_ncomp: PLSComponentSelectionDirFmt | None,
+    weighted: bool,
+    measure: str,
+    distance: str,
+) -> int:
+    """
+    Captures a manual component count or derives it from a tuning artifact.
+
+    Uses a manually supplied ``ncomp`` when available; otherwise, reads the
+    count selected by the requested voting, measure, and distance criteria from
+    the component-tuning artifact. The resolved value is captured for action
+    provenance.
+
+    Args:
+        ncomp (CaptureHolder[int] | int | None): Manually supplied component
+            count or capture holder for the resolved value.
+        tuned_ncomp (PLSComponentSelectionDirFmt | None): Component-tuning artifact
+            used when no manual component count is supplied.
+        weighted (bool): Whether to use the weighted rather than majority vote.
+        measure (str): Requested prediction-error measure.
+        distance (str): Requested prediction distance.
+
+    Returns:
+        int: The selected number of components.
+
+    Raises:
+        ValueError: If exactly one of a manual count and tuning artifact is not
+            provided.
+    """
+    manual_ncomp = ncomp.is_set
+    has_tuned_ncomp = tuned_ncomp is not None
+    if manual_ncomp == has_tuned_ncomp:
+        raise ValueError("Provide exactly one of ncomp or a tuned-ncomp artifact.")
+    return CaptureHolder.get_or_set(
+        ncomp,
+        lambda: _ncomp_from_tuned_ncomp(tuned_ncomp, weighted, measure, distance),
+    )
+
+
+def _ncomp_from_tuned_ncomp(
+    tuned_ncomp: PLSComponentSelectionDirFmt,
+    weighted: bool,
+    measure: str,
+    distance: str,
+) -> int:
+    """
+    Reads the component count chosen for a requested tuning criterion.
+
+    Reads the weighted- or majority-vote choice matrix from the current
+    component-tuning artifact.
+
+    Args:
+        tuned_ncomp (PLSComponentSelectionDirFmt): Component-tuning artifact
+            containing the selected component counts.
+        weighted (bool): Whether to use the weighted rather than majority vote.
+        measure (str): Requested prediction-error measure.
+        distance (str): Requested prediction distance.
+
+    Returns:
+        int: The uniquely selected number of components.
+    """
+    requested_measure = "Overall.BER" if measure == "BER" else "Overall.ER"
+    matrix_file = (
+        tuned_ncomp.choice_matrix_weighted
+        if weighted
+        else tuned_ncomp.choice_matrix_majority
+    )
+    matrix = matrix_file.view(pd.DataFrame)
+    selected_ncomp = matrix.loc[matrix["id"] == requested_measure, distance].iloc[0]
+    return int(selected_ncomp)

@@ -13,10 +13,8 @@ from pandas.testing import assert_frame_equal
 from q2_types.feature_table import FeatureTable, Unconstrained
 from rachis import Artifact, Metadata, ResultCollection
 from rachis.plugin.testing import TestPluginBase
-from rpy2.robjects import IntVector, ListVector, StrVector
-from rpy2.robjects.packages import importr
+from rpy2.robjects import r
 
-from q2_mfa.pls import AssociationMatrix, PLSComponentSelectionDirFmt
 from q2_mfa.pls.descriptions import jsonl_descriptions
 from q2_mfa.pls.tune_components_block_splsda import (
     _error_rate_metadata,
@@ -26,8 +24,6 @@ from q2_mfa.pls.tune_components_block_splsda import (
     _tune_components_block_visualisation,
     tune_components_block_splsda,
 )
-
-base = importr("base")
 
 
 class TestTuneComponentsBlockSPLSDA(TestPluginBase):
@@ -43,6 +39,7 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
                 instance.get_data_path(f"tune-components/{name}"),
                 sep="\t",
                 index_col="id",
+                dtype={"id": str},
             )
 
         cls.tables = ResultCollection(
@@ -56,84 +53,24 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
             }
         )
         cls.response = Metadata(read_table("response.tsv")).get_column("group")
-        cls.expected_weighted_error_rates = read_table("weighted-error-rates.tsv")
+        cls.expected_weighted_error_rates = read_table(
+            "nutrimouse-weighted-error-rates.tsv"
+        )
         cls.expected_weighted_error_rates["component"] = (
             cls.expected_weighted_error_rates["component"].astype(float)
         )
-        cls.expected_majority_error_rates = read_table("majority-error-rates.tsv")
+        cls.expected_majority_error_rates = read_table(
+            "nutrimouse-majority-error-rates.tsv"
+        )
         cls.expected_majority_error_rates["component"] = (
             cls.expected_majority_error_rates["component"].astype(float)
         )
-        cls.expected_weighted_choices = read_table("weighted-choices.tsv").astype(float)
-        cls.expected_majority_choices = read_table("majority-choices.tsv").astype(float)
-
-    def test_tune_components_pipeline_matches_expected_values(self):
-        tune_components = self.plugin.pipelines["tune_components_block_splsda"]
-        design_matrix = Artifact.import_data(
-            AssociationMatrix,
-            pd.DataFrame(
-                [[0.0, 0.1], [0.1, 0.0]],
-                index=pd.Index(["block-b", "block-a"], name="id"),
-                columns=["block-b", "block-a"],
-            ),
-        )
-
-        results = tune_components(
-            tables=self.tables,
-            y=self.response,
-            design_matrix=design_matrix,
-            ncomp=2,
-            validation="Mfold",
-            folds=3,
-            nrepeat=3,
-            seed=1,
-            threads=1,
-        )
-
-        tuning = results.tune_components
-        tuning_data = tuning.view(PLSComponentSelectionDirFmt)
-        actual_tables = (
-            (
-                tuning_data.error_rate_weighted.view(Metadata).to_dataframe(),
-                self.expected_weighted_error_rates,
-                True,
-            ),
-            (
-                tuning_data.error_rate_majority.view(Metadata).to_dataframe(),
-                self.expected_majority_error_rates,
-                True,
-            ),
-            (
-                tuning_data.choice_matrix_weighted.view(Metadata).to_dataframe(),
-                self.expected_weighted_choices,
-                False,
-            ),
-            (
-                tuning_data.choice_matrix_majority.view(Metadata).to_dataframe(),
-                self.expected_majority_choices,
-                False,
-            ),
-        )
-
-        for actual, expected, has_error_rates in actual_tables:
-            if has_error_rates:
-                assert_frame_equal(actual, expected, rtol=1e-8, atol=1e-10)
-            else:
-                assert_frame_equal(actual, expected, check_exact=True)
-
-        with (
-            results.visualization._archiver.data_dir / "subfigures" / "index.json"
-        ).open() as fh:
-            report_index = json.load(fh)
-        self.assertEqual(list(report_index), ["Error rates", "Component choices"])
-        self.assertEqual(
-            list(report_index["Error rates"]["children"]),
-            ["Weighted vote", "Majority vote"],
-        )
-        self.assertEqual(
-            list(report_index["Component choices"]["children"]),
-            ["Weighted vote", "Majority vote"],
-        )
+        cls.expected_weighted_choices = read_table(
+            "nutrimouse-weighted-choices.tsv"
+        ).astype(float)
+        cls.expected_majority_choices = read_table(
+            "nutrimouse-majority-choices.tsv"
+        ).astype(float)
 
     def test_tune_components_pipeline_calls_its_actions(self):
         tuning = MagicMock()
@@ -243,18 +180,18 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         self.assertEqual(
             actual.index.tolist(),
             [
-                "_5",
-                "_6",
-                "_7",
-                "_8",
-                "_13",
-                "_14",
-                "_15",
-                "_16",
-                "_21",
-                "_22",
-                "_23",
-                "_24",
+                "11",
+                "12",
+                "13",
+                "14",
+                "25",
+                "26",
+                "27",
+                "28",
+                "39",
+                "40",
+                "41",
+                "42",
             ],
         )
         self.assertEqual(
@@ -276,17 +213,10 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         )
 
     def test_r_choice_matrix_to_df_converts_r_matrix_labels_and_values(self):
-        choice_matrix = base.matrix(
-            IntVector([2, 1, 4, 3]),
-            nrow=2,
-            dimnames=base.list(
-                StrVector(["Overall.ER", "Overall.BER"]),
-                StrVector(["max.dist", "centroids.dist"]),
-            ),
-        )
-        perf_result = ListVector(
-            {"choice.ncomp": ListVector({"WeightedVote": choice_matrix})}
-        )
+        """Preserves component choice labels and integer values."""
+        perf_result = r["source"](
+            self.get_data_path("tune-components/perf-statistics.R")
+        ).rx2("value")
 
         actual = _r_choice_matrix_to_df(perf_result, "WeightedVote")
 

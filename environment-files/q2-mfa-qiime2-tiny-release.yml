@@ -1,10 +1,14 @@
 channels:
 - https://packages.qiime2.org/qiime2/stable/tiny/released
+- https://packages.qiime2.org/qiime2/stable/qiime2/released/
 - conda-forge
 - bioconda
 dependencies:
-  - qiime2-tiny
+  - bioconductor-mixomics
+  - rachis-tiny
+  - rpy2
   - pip
+  - q2-vizard
   - pip:
      - prince
      - q2-mfa@git+https://github.com/bokulich-lab/q2-mfa.git@main
