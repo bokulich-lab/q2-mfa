@@ -34,3 +34,12 @@ class PLSComponentSelectionDirFmt(model.DirectoryFormat):
 AssociationMatrixDirFmt = model.SingleFileDirectoryFormat(
     "AssociationMatrixDirFmt", "association-matrix.tsv", LSMatFormat
 )
+
+
+class PLSFeatureSelectionDirFmt(model.DirectoryFormat):
+    """Stores DIABLO feature-selection diagnostics and selected keepX values."""
+
+    error_rate = model.File("error_rate.jsonl", format=TableJSONLFileFormat)
+    selected_features = model.File(
+        "selected_features.jsonl", format=TableJSONLFileFormat
+    )

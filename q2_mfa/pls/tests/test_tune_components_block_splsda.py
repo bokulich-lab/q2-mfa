@@ -13,8 +13,7 @@ from pandas.testing import assert_frame_equal
 from q2_types.feature_table import FeatureTable, Unconstrained
 from rachis import Artifact, Metadata, ResultCollection
 from rachis.plugin.testing import TestPluginBase
-from rpy2.robjects import IntVector, ListVector, StrVector
-from rpy2.robjects.packages import importr
+from rpy2.robjects import r
 
 from q2_mfa.pls import AssociationMatrix, PLSComponentSelectionDirFmt
 from q2_mfa.pls.descriptions import jsonl_descriptions
@@ -26,8 +25,6 @@ from q2_mfa.pls.tune_components_block_splsda import (
     _tune_components_block_visualisation,
     tune_components_block_splsda,
 )
-
-base = importr("base")
 
 
 class TestTuneComponentsBlockSPLSDA(TestPluginBase):
@@ -43,6 +40,7 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
                 instance.get_data_path(f"tune-components/{name}"),
                 sep="\t",
                 index_col="id",
+                dtype={"id": str},
             )
 
         cls.tables = ResultCollection(
@@ -243,18 +241,18 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         self.assertEqual(
             actual.index.tolist(),
             [
-                "_5",
-                "_6",
-                "_7",
-                "_8",
-                "_13",
-                "_14",
-                "_15",
-                "_16",
-                "_21",
-                "_22",
-                "_23",
-                "_24",
+                "5",
+                "6",
+                "7",
+                "8",
+                "13",
+                "14",
+                "15",
+                "16",
+                "21",
+                "22",
+                "23",
+                "24",
             ],
         )
         self.assertEqual(
@@ -276,17 +274,10 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         )
 
     def test_r_choice_matrix_to_df_converts_r_matrix_labels_and_values(self):
-        choice_matrix = base.matrix(
-            IntVector([2, 1, 4, 3]),
-            nrow=2,
-            dimnames=base.list(
-                StrVector(["Overall.ER", "Overall.BER"]),
-                StrVector(["max.dist", "centroids.dist"]),
-            ),
-        )
-        perf_result = ListVector(
-            {"choice.ncomp": ListVector({"WeightedVote": choice_matrix})}
-        )
+        """Preserves component choice labels and integer values."""
+        perf_result = r["source"](
+            self.get_data_path("tune-components/perf-statistics.R")
+        ).rx2("value")
 
         actual = _r_choice_matrix_to_df(perf_result, "WeightedVote")
 

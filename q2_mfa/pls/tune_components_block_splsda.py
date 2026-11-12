@@ -11,7 +11,6 @@ import pandas as pd
 from q2templates.reports import matryoshka_template
 from rachis import CategoricalMetadataColumn, Metadata
 from rachis.plugin import CaptureHolder
-from rpy2.robjects import pandas2ri, r
 from rpy2.robjects.packages import importr
 
 from q2_mfa.pls.descriptions import jsonl_descriptions, report_descriptions
@@ -19,14 +18,14 @@ from q2_mfa.pls.types._format import PLSComponentSelectionDirFmt
 from q2_mfa.pls.utils import (
     _align_samples,
     _build_bpparam,
+    _call_without_messages,
+    _r_matrix_to_dataframe,
     _r_perf_error_rate_to_df,
     _resolve_design,
     _to_r_inputs,
 )
 
-base = importr("base")
 mixomics = importr("mixOmics")
-_call_without_messages = r("function(fun, ...) suppressMessages(fun(...))")
 
 
 def _tune_components_block_splsda(
@@ -63,7 +62,7 @@ def _tune_components_block_splsda(
     design = _resolve_design(design_matrix, design_weight, tables.keys())
     resolved_seed = CaptureHolder.get_or_set(seed, lambda: secrets.randbelow(2**31))
     bpparam = _build_bpparam(threads)
-    r_blocks, r_target, r_design = _to_r_inputs(tables, target, design)
+    r_blocks, r_target, r_design, _, _ = _to_r_inputs(tables, target, design)
 
     # Fit the dense model, as documented for component tuning in the mixOmics
     # block sPLS-DA (DIABLO) vignette.
@@ -270,12 +269,9 @@ def _error_rate_metadata(error_rates: Metadata) -> Metadata:
 
 
 def _r_choice_matrix_to_df(perf_result, vote: str) -> pd.DataFrame:
-    # Extract the R matrix
+    """Converts one vote's component choices to a metadata-compatible table."""
     matrix = perf_result.rx2("choice.ncomp").rx2(vote)
-    # Convert to R data frame
-    choice_matrix = pandas2ri.rpy2py_dataframe(base.as_data_frame(matrix))
-    # Index for rachis metadata compatability
-    return choice_matrix.rename_axis("id").astype("Int64")
+    return _r_matrix_to_dataframe(matrix).rename_axis("id").astype("Int64")
 
 
 def _print_component_choice(choice_table: pd.DataFrame, vote: str) -> None:
@@ -318,10 +314,10 @@ def _serialize_tune_components(
     choice_matrix_majority = choice_matrix_majority.reset_index()
 
     error_rate_weighted.insert(
-        0, "id", [f"_{index}" for index in range(1, len(error_rate_weighted) + 1)]
+        0, "id", [str(index) for index in range(1, len(error_rate_weighted) + 1)]
     )
     error_rate_majority.insert(
-        0, "id", [f"_{index}" for index in range(1, len(error_rate_majority) + 1)]
+        0, "id", [str(index) for index in range(1, len(error_rate_majority) + 1)]
     )
 
     error_rate_weighted.attrs["description"] = jsonl_descriptions["error_rate_weighted"]

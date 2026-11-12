@@ -6,15 +6,16 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import warnings
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 from rachis import Metadata
 from rachis.core.exceptions import RachisWarning
+from rachis.plugin import CaptureHolder, Int
 from rachis.plugin.testing import TestPluginBase
-from rpy2.robjects import FloatVector, ListVector, StrVector
+from rpy2.robjects import r
 
-from q2_mfa.pls import utils
+from q2_mfa.pls import PLSComponentSelectionDirFmt, utils
 
 
 class TestPLSUtils(TestPluginBase):
@@ -36,6 +37,9 @@ class TestPLSUtils(TestPluginBase):
         }
         cls.response = Metadata(read_table("response.tsv")).get_column("group")
         cls.design = read_table("design-valid.tsv")
+        cls.tuned_ncomp = PLSComponentSelectionDirFmt(
+            instance.get_data_path("utils/tuned-ncomp"), mode="r"
+        )
 
     def test_align_samples_drops_unshared_and_unlabelled_samples(self):
         with warnings.catch_warnings(record=True) as caught:
@@ -139,7 +143,13 @@ class TestPLSUtils(TestPluginBase):
         blocks = {name: table.loc[sample_ids] for name, table in self.blocks.items()}
         target = self.response.to_series().loc[sample_ids]
 
-        r_blocks, r_target, r_design = utils._to_r_inputs(blocks, target, self.design)
+        r_blocks, r_target, r_design, r_keep_x, r_already_tested_x = utils._to_r_inputs(
+            blocks,
+            target,
+            self.design,
+            {"block-a": [1, 2], "block-b": [3, 4]},
+            {"block-a": [1], "block-b": [3]},
+        )
 
         self.assertEqual(list(r_blocks.names), ["block-a", "block-b"])
         self.assertEqual(list(utils.base.rownames(r_blocks.rx2("block-a"))), sample_ids)
@@ -147,36 +157,115 @@ class TestPLSUtils(TestPluginBase):
         self.assertEqual(list(utils.base.as_character(r_target)), ["case", "control"])
         self.assertEqual(list(utils.base.rownames(r_design)), ["block-b", "block-a"])
         self.assertEqual(list(utils.base.colnames(r_design)), ["block-b", "block-a"])
+        self.assertEqual(list(r_keep_x.names), ["block-a", "block-b"])
+        self.assertEqual(list(r_keep_x.rx2("block-a")), [1, 2])
+        self.assertEqual(list(r_keep_x.rx2("block-b")), [3, 4])
+        self.assertEqual(list(r_already_tested_x.names), ["block-a", "block-b"])
+        self.assertEqual(list(r_already_tested_x.rx2("block-a")), [1])
+        self.assertEqual(list(r_already_tested_x.rx2("block-b")), [3])
 
     def test_vote_error_rates_combines_mean_and_standard_deviation(self):
-        dimnames = utils.base.list(
-            StrVector(["Overall.BER", "Overall.ER"]),
-            StrVector(["comp1", "comp2"]),
-        )
-        mean_rates = utils.base.matrix(
-            FloatVector([0.1, 0.3, 0.2, 0.4]), nrow=2, dimnames=dimnames
-        )
-        standard_deviations = utils.base.matrix(
-            FloatVector([0.01, 0.03, 0.02, 0.04]), nrow=2, dimnames=dimnames
-        )
-        perf_result = ListVector(
-            {
-                "WeightedVote.error.rate": ListVector({"max.dist": mean_rates}),
-                "WeightedVote.error.rate.sd": ListVector(
-                    {"max.dist": standard_deviations}
-                ),
-            }
-        )
+        """Aligns SD values to the mean by distance, class, and component."""
+        perf_result = r["source"](
+            self.get_data_path("tune-components/perf-statistics.R")
+        ).rx2("value")
         observed = utils._r_perf_error_rate_to_df(perf_result, "WeightedVote")
 
         expected = pd.DataFrame(
             {
-                "distance": ["max.dist"] * 4,
-                "class": ["Overall.BER", "Overall.BER", "Overall.ER", "Overall.ER"],
-                "component": [1, 2, 1, 2],
-                "mean": [0.1, 0.2, 0.3, 0.4],
-                "sd": [0.01, 0.02, 0.03, 0.04],
+                "distance": ["max.dist"] * 4 + ["centroids.dist"] * 4,
+                "class": (["Overall.BER"] * 2 + ["Overall.ER"] * 2) * 2,
+                "component": [1, 2] * 4,
+                "mean": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+                "sd": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08],
             }
         )
         expected["component"] = expected["component"].astype("Int64")
         pd.testing.assert_frame_equal(observed, expected)
+
+    def test_ncomp_from_tuned_ncomp_selects_requested_vote(self):
+        """Reads the selected component from the requested vote matrix."""
+        for weighted, expected in ((True, 2), (False, 3)):
+            with self.subTest(weighted=weighted):
+                observed = utils._ncomp_from_tuned_ncomp(
+                    self.tuned_ncomp,
+                    weighted=weighted,
+                    measure="BER",
+                    distance="max.dist",
+                )
+                self.assertEqual(observed, expected)
+
+    def test_resolve_ncomp_returns_manual_value(self):
+        """Uses a manually provided component count without reading tuning data."""
+        ncomp = CaptureHolder("ncomp", 4, Int, Mock(parameters={}))
+
+        observed = utils._resolve_ncomp(
+            ncomp,
+            tuned_ncomp=None,
+            weighted=True,
+            measure="BER",
+            distance="max.dist",
+        )
+
+        self.assertEqual(observed, 4)
+
+    def test_resolve_ncomp_captures_value_from_tuned_ncomp(self):
+        """Derives and records the component count when no manual value exists."""
+        provenance = Mock(parameters={})
+        ncomp = CaptureHolder("ncomp", None, Int, provenance)
+
+        observed = utils._resolve_ncomp(
+            ncomp,
+            tuned_ncomp=self.tuned_ncomp,
+            weighted=True,
+            measure="BER",
+            distance="max.dist",
+        )
+
+        self.assertEqual(observed, 2)
+        self.assertTrue(ncomp.is_set)
+        self.assertEqual(provenance.parameters, {"ncomp": 2})
+
+    def test_resolve_ncomp_rejects_both_sources(self):
+        """Rejects a manual count paired with a component-tuning artifact."""
+        ncomp = CaptureHolder("ncomp", 4, Int, Mock(parameters={}))
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r"^Provide exactly one of ncomp or a tuned-ncomp artifact\.$",
+        ):
+            utils._resolve_ncomp(
+                ncomp,
+                tuned_ncomp=self.tuned_ncomp,
+                weighted=True,
+                measure="BER",
+                distance="max.dist",
+            )
+
+    def test_resolve_ncomp_rejects_neither_source(self):
+        """Rejects an unset manual count without a component-tuning artifact."""
+        ncomp = CaptureHolder("ncomp", None, Int, Mock(parameters={}))
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r"^Provide exactly one of ncomp or a tuned-ncomp artifact\.$",
+        ):
+            utils._resolve_ncomp(
+                ncomp,
+                tuned_ncomp=None,
+                weighted=True,
+                measure="BER",
+                distance="max.dist",
+            )
+
+    def test_to_r_inputs_without_keepx_returns_optional_nulls(self):
+        """Keeps the five-result interface when no feature grids are supplied."""
+        sample_ids = ["s2", "s3"]
+        blocks = {name: table.loc[sample_ids] for name, table in self.blocks.items()}
+        inputs = utils._to_r_inputs(
+            blocks, self.response.to_series().loc[sample_ids], 0.1
+        )
+        self.assertEqual(len(inputs), 5)
+        self.assertEqual(inputs[2], 0.1)
+        self.assertIsNone(inputs[3])
+        self.assertIsNone(inputs[4])
