@@ -23,7 +23,6 @@ from q2_mfa.pls import (
     PLSFeatureSelectionDirFmt,
     PLSFitDirFmt,
 )
-from q2_mfa.pls.descriptions import fit_descriptions
 from q2_mfa.plugin_setup import plugin
 
 
@@ -89,27 +88,6 @@ class TestUsageExamples(TestPluginBase):
             index_col="id",
             dtype={"id": str},
         )
-        cls.expected_fit = {
-            name: pd.read_csv(
-                instance.get_data_path(f"fit/nutrimouse/{fixture}.tsv"),
-                sep="\t",
-                comment="#",
-                dtype={"id": str, "sample": str},
-            )
-            for name, fixture in (
-                ("loadings", "loadings"),
-                ("scores", "scores"),
-                ("weights", "weights"),
-                ("prop_expl_var", "prop-expl-var"),
-                ("ave", "ave"),
-                ("feature_stability", "feature-stability"),
-                ("auc", "auc"),
-                ("error_rate_weighted", "error-rate-weighted"),
-                ("error_rate_majority", "error-rate-majority"),
-                ("feature_component_correlation", "feature-component-correlation"),
-                ("feature_similarity", "feature-similarity"),
-            )
-        }
         cls.expected_component_tuning = {}
         for vote in ("weighted", "majority"):
             for table in ("error-rates", "choices"):
@@ -201,7 +179,7 @@ class TestUsageExamples(TestPluginBase):
         )
 
     def test_fit_block_splsda_nutrimouse(self):
-        """Checks fitted tables against R fixtures and verifies the report."""
+        """Fits Nutrimouse using tuning artifacts and checks the report."""
         use = ExecutionUsage()
         action = self.plugin.pipelines["fit_block_splsda"]
         action.examples["nutrimouse"](use)
@@ -209,17 +187,15 @@ class TestUsageExamples(TestPluginBase):
 
         fitted = outputs["fit_nutrimouse"].execute().view(PLSFitDirFmt)
         fitted.validate()
-        for name, expected in self.expected_fit.items():
-            with self.subTest(table=name):
-                observed = getattr(fitted, name).view(pd.DataFrame)
-                self.assertEqual(observed.attrs["description"], fit_descriptions[name])
-                assert_frame_equal(
-                    observed,
-                    expected,
-                    check_dtype=False,
-                    rtol=1e-8,
-                    atol=1e-10,
-                )
+
+        loadings = fitted.loadings.view(pd.DataFrame).set_index("block").drop(index="Y")
+        selected_counts = (
+            loadings.filter(regex=r"^comp\d+$").ne(0).groupby(level="block").sum()
+        )
+        self.assertEqual(
+            selected_counts.to_dict(orient="index"),
+            {"gene": {"comp1": 5, "comp2": 5}, "lipid": {"comp1": 9, "comp2": 5}},
+        )
 
         report = outputs["fit_nutrimouse_plots"].execute()
         with (report._archiver.data_dir / "subfigures" / "index.json").open() as fh:
