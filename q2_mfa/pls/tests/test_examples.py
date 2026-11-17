@@ -201,7 +201,7 @@ class TestUsageExamples(TestPluginBase):
         )
 
     def test_fit_block_splsda_nutrimouse(self):
-        """Executes the fit example and compares every output to R fixtures."""
+        """Checks fitted tables against R fixtures and verifies the report."""
         use = ExecutionUsage()
         action = self.plugin.pipelines["fit_block_splsda"]
         action.examples["nutrimouse"](use)
@@ -220,3 +220,17 @@ class TestUsageExamples(TestPluginBase):
                     rtol=1e-8,
                     atol=1e-10,
                 )
+
+        report = outputs["fit_nutrimouse_plots"].execute()
+        with (report._archiver.data_dir / "subfigures" / "index.json").open() as fh:
+            report_index = json.load(fh)
+        self.assertEqual(list(report_index), ["Sample scores", "Feature correlations"])
+        self.assertEqual(
+            list(report_index["Sample scores"]["children"]),
+            [
+                "block: gene",
+                "block: lipid",
+                "method: average",
+                "method: weighted_average",
+            ],
+        )
