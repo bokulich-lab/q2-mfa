@@ -1,0 +1,3 @@
+{"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"comp1","type":"number","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"","extra":{}}
+{"id":"1","block":"gene","comp1":0.701405372544086}
+{"id":"2","block":"lipid","comp1":0.891117298250386}

@@ -43,3 +43,29 @@ class PLSFeatureSelectionDirFmt(model.DirectoryFormat):
     selected_features = model.File(
         "selected_features.jsonl", format=TableJSONLFileFormat
     )
+
+
+class PLSFitDirFmt(model.DirectoryFormat):
+    """Stores PLS and DIABLO tables with wide scores, loadings, and correlations."""
+
+    loadings = model.File("loadings.jsonl", format=TableJSONLFileFormat)
+    scores = model.File("scores.jsonl", format=TableJSONLFileFormat)
+    weights = model.File("weights.jsonl", format=TableJSONLFileFormat)
+    prop_expl_var = model.File("prop_expl_var.jsonl", format=TableJSONLFileFormat)
+    ave = model.File("ave.jsonl", format=TableJSONLFileFormat)
+    feature_stability = model.File(
+        "feature_stability.jsonl", format=TableJSONLFileFormat
+    )
+    auc = model.File("auc.jsonl", format=TableJSONLFileFormat)
+    error_rate_weighted = model.File(
+        "error_rate_weighted.jsonl", format=TableJSONLFileFormat
+    )
+    error_rate_majority = model.File(
+        "error_rate_majority.jsonl", format=TableJSONLFileFormat
+    )
+    feature_component_correlation = model.File(
+        "feature_component_correlation.jsonl", format=TableJSONLFileFormat
+    )
+    feature_similarity = model.File(
+        "feature_similarity.jsonl", format=TableJSONLFileFormat
+    )

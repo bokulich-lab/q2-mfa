@@ -1,0 +1,6 @@
+{"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"sample","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"comp1","type":"number","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"","extra":{}}
+{"id":"1","sample":"1","block":"metabolomics","comp1":2.12}
+{"id":"2","sample":"1","block":"microbiome","comp1":-1.13}
+{"id":"3","sample":"1","block":"Y","comp1":0.71}
+{"id":"4","sample":"1","block":"average","comp1":2.83870312665319}
+{"id":"5","sample":"1","block":"weighted_average","comp1":2.82630329476369}

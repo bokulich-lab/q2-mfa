@@ -11,6 +11,7 @@ from q2_mfa.pls import (
     AssociationMatrixDirFmt,
     PLSComponentSelectionDirFmt,
     PLSFeatureSelectionDirFmt,
+    PLSFitDirFmt,
 )
 
 
@@ -48,3 +49,15 @@ class TestPLSFeatureSelectionDirFmt(TestPluginBase):
 
     def test_complete_fixture_validates(self):
         PLSFeatureSelectionDirFmt(self.fixture_dir, mode="r").validate()
+
+
+class TestPLSFitDirFmt(TestPluginBase):
+    package = "q2_mfa.pls.types.tests"
+
+    @classmethod
+    def setUpClass(cls):
+        helper = cls()
+        cls.fixture_dir = Path(helper.get_data_path("pls-analysis/complete"))
+
+    def test_complete_fixture_validates(self):
+        PLSFitDirFmt(self.fixture_dir, mode="r").validate()

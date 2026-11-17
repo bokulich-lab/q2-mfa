@@ -9,10 +9,13 @@ from ._format import (
     AssociationMatrixDirFmt,
     PLSComponentSelectionDirFmt,
     PLSFeatureSelectionDirFmt,
+    PLSFitDirFmt,
 )
-from ._type import AssociationMatrix, PLSComponentSelection, PLSFeatureSelection
+from ._type import AssociationMatrix, PLSComponentSelection, PLSFeatureSelection, PLSFit
 
 __all__ = [
+    "PLSFit",
+    "PLSFitDirFmt",
     "PLSFeatureSelection",
     "PLSFeatureSelectionDirFmt",
     "PLSComponentSelection",
