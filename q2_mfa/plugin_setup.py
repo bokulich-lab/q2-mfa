@@ -45,6 +45,7 @@ from q2_mfa.pls import (
     tune_components_block_splsda,
 )
 from q2_mfa.pls.examples import (
+    fit_block_splsda_nutrimouse,
     select_features_block_splsda_nutrimouse,
     tune_components_block_splsda_nutrimouse,
 )
@@ -604,6 +605,7 @@ plugin.methods.register_function(
         "supplied or previously selected components and retained feature counts."
     ),
     citations=[citations["rohart2017mixomics"]],
+    examples={"nutrimouse": fit_block_splsda_nutrimouse},
 )
 
 plugin.register_formats(
