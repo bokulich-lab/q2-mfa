@@ -288,7 +288,7 @@ def _selected_features_table(tune_result: ListVector) -> pd.DataFrame:
         dtype=int,
     )
     selected_features.index = pd.Index(
-        range(1, len(selected_features) + 1), dtype="Int64", name="component"
+        range(1, len(selected_features) + 1), name="component"
     )
     return selected_features
 

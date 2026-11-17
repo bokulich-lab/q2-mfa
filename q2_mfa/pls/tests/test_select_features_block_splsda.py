@@ -339,7 +339,7 @@ class TestSelectFeaturesBlockSPLSDA(TestPluginBase):
             )
             .sort_values(["keepx_block-a", "keepx_block-b"], kind="stable")
             .reset_index(drop=True)
-            .astype({"component": "Int64"})
+            .astype({"component": "int64"})
         )
 
         assert_frame_equal(observed, expected)
@@ -353,7 +353,7 @@ class TestSelectFeaturesBlockSPLSDA(TestPluginBase):
         observed = _selected_features_table(tune_result)
         expected = pd.DataFrame(
             {"metabolome": [5, 7], "microbiome": [3, 4]},
-            index=pd.Index([1, 2], dtype="Int64", name="component"),
+            index=pd.Index([1, 2], name="component"),
         )
 
         assert_frame_equal(observed, expected)

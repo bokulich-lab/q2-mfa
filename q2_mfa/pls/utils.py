@@ -191,7 +191,7 @@ def _r_error_rate_matrices_to_dataframe(
         .rename_axis(index=[row_name, "component"])
         .reset_index()
     )
-    rates["component"] = rates["component"].str.removeprefix("comp").astype("Int64")
+    rates["component"] = rates["component"].str.removeprefix("comp").astype("int64")
     return rates
 
 

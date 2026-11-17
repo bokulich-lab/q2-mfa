@@ -270,7 +270,7 @@ def _error_rate_metadata(error_rates: Metadata) -> Metadata:
 def _r_choice_matrix_to_df(perf_result, vote: str) -> pd.DataFrame:
     """Converts one vote's component choices to a metadata-compatible table."""
     matrix = perf_result.rx2("choice.ncomp").rx2(vote)
-    return _r_matrix_to_dataframe(matrix).rename_axis("id").astype("Int64")
+    return _r_matrix_to_dataframe(matrix).rename_axis("id").astype("int64")
 
 
 def _print_component_choice(choice_table: pd.DataFrame, vote: str) -> None:
