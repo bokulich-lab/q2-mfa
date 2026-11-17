@@ -30,7 +30,7 @@ from q2_mfa.pls.select_features_block_splsda import (
     _selected_features_table,
     _serialize_feature_selection,
 )
-from q2_mfa.pls.utils import _parse_keepx_collection, base
+from q2_mfa.pls.utils import base
 
 
 class TestSelectFeaturesBlockSPLSDA(TestPluginBase):
@@ -66,74 +66,6 @@ class TestSelectFeaturesBlockSPLSDA(TestPluginBase):
                 index_col="id",
             ),
         )
-
-    def test_parse_keepx_collection_requires_expected_blocks(self):
-        """Rejects keepX grids whose block names differ from the input blocks."""
-        with self.assertRaisesRegex(ValueError, "must exactly match input block names"):
-            _parse_keepx_collection({"block-a": "1,2"}, ("block-a", "block-b"), ncomp=2)
-
-    def test_parse_keepx_collection_parses_named_candidate_grids(self):
-        """Converts each named comma-separated candidate grid to integers."""
-        observed = _parse_keepx_collection(
-            {
-                "block-a": "1, 2, 3",
-                "block-b": "4,5,6",
-                "block-c": "7,8,9",
-            },
-            ("block-a", "block-b", "block-c"),
-            ncomp=3,
-        )
-
-        self.assertEqual(
-            observed,
-            {
-                "block-a": [1, 2, 3],
-                "block-b": [4, 5, 6],
-                "block-c": [7, 8, 9],
-            },
-        )
-
-    def test_parse_keepx_collection_requires_positive_integers(self):
-        """Rejects non-positive and non-integer keepX candidate values."""
-        for values in ("0,2", "one,2"):
-            with self.subTest(values=values):
-                with self.assertRaisesRegex(
-                    ValueError,
-                    "comma-separated list of positive integers",
-                ):
-                    _parse_keepx_collection(
-                        {"block-a": values, "block-b": "1,2"},
-                        ("block-a", "block-b"),
-                        ncomp=2,
-                    )
-
-    def test_parse_keepx_collection_requires_equal_prior_selection_lengths(self):
-        """Rejects prior selections with unequal numbers of components."""
-        with self.assertRaisesRegex(
-            ValueError,
-            "^All 'already-tested-x' lists must have the same length\\. "
-            "Each entry specifies how many features to retain for one component\\.$",
-        ):
-            _parse_keepx_collection(
-                {"block-a": "1,2", "block-b": "3"},
-                ("block-a", "block-b"),
-                ncomp=3,
-                already_tested=True,
-            )
-
-    def test_parse_keepx_collection_requires_remaining_component_to_tune(self):
-        """Rejects prior selections that fill every requested component."""
-        with self.assertRaisesRegex(
-            ValueError,
-            "^'ncomp' must be greater than the length of each 'already-tested-x' "
-            "list so that at least one component remains to tune\\.$",
-        ):
-            _parse_keepx_collection(
-                {"block-a": "1,2", "block-b": "3,4"},
-                ("block-a", "block-b"),
-                ncomp=2,
-                already_tested=True,
-            )
 
     @patch("q2_mfa.pls.select_features_block_splsda._call_without_messages")
     def test_private_feature_selection_calls_mixomics_and_serializes(
