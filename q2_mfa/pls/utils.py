@@ -298,13 +298,8 @@ def _ncomp_from_tuned_ncomp(
         else tuned_ncomp.choice_matrix_majority
     )
     matrix = matrix_file.view(pd.DataFrame)
-    selected = matrix.loc[matrix["id"] == requested_measure, distance]
-    if len(selected) != 1 or pd.isna(selected.iloc[0]):
-        raise ValueError(
-            "The component-tuning artifact has no selected number of components for "
-            "the requested vote, measure, and distance."
-        )
-    return int(selected.iloc[0])
+    selected_ncomp = matrix.loc[matrix["id"] == requested_measure, distance].iloc[0]
+    return int(selected_ncomp)
 
 
 def _parse_keepx_collection(
