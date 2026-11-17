@@ -175,3 +175,79 @@ feature_selection_descriptions = {
         "tune.block.splsda() choice.keepX."
     ),
 }
+
+
+fit_descriptions = {
+    "loadings": (
+        "Per-feature component loading weights from mixOmics block.splsda() "
+        "model$loadings, with one row per feature and block. Each row has a "
+        "unique generated id, a string feature ID, a block label, and comp1, "
+        "comp2, etc. columns in component order."
+    ),
+    "scores": (
+        "Per-sample component scores for each input block and the outcome block "
+        "Y from mixOmics block.splsda() model$variates, plus "
+        "combined scores across the input blocks. Each row has a unique "
+        "generated id, a string sample ID, a block label, and "
+        "comp1, comp2, etc. columns in component order. Original block names "
+        "label per-block scores. The average block contains the arithmetic "
+        "mean across input blocks, excluding the outcome block Y, to match "
+        "mixOmics plotIndiv(). The weighted_average block "
+        "multiplies each block's score by its signed model$weights value, sums "
+        "the products, and divides by the sum of weights for that component."
+    ),
+    "weights": (
+        "Block weights from mixOmics block.splsda() model$weights. Each weight "
+        "is a signed Pearson correlation across samples between an input "
+        "block's scores and the outcome block Y's scores for the same component. "
+        "Each row has a unique generated id, a block label, and comp1, comp2, etc. "
+        "columns in component order."
+    ),
+    "prop_expl_var": (
+        "Proportion of explained variance per block and latent component from "
+        "mixOmics block.splsda() model$prop_expl_var. Each row has a unique "
+        "generated id, a block label, and comp1, comp2, etc. columns in "
+        "component order."
+    ),
+    "ave": (
+        "Average variance explained summaries from mixOmics block.splsda() "
+        "model$AVE. Each row has a unique generated id, a metric label, a "
+        "block label, and comp1, comp2, etc. columns in component order. "
+        "The AVE_outer and AVE_inner metrics use the block label overall."
+    ),
+    "feature_stability": (
+        "Mean selection frequency across all cross-validation repeats for each "
+        "block, feature, and component. The per-repeat frequencies from mixOmics "
+        "perf() features$stable are summed and divided by the total number of "
+        "repeats. Each row has a unique generated id, a block label, a string "
+        "feature ID, and comp1, comp2, etc. columns containing mean selection "
+        "frequencies. Features never selected for a component have a frequency of "
+        "zero."
+    ),
+    "auc": (
+        "Per-component contrast AUC values and p-values from mixOmics perf() "
+        "with auc enabled."
+    ),
+    "error_rate_weighted": (
+        "Cross-validated weighted-vote classification error-rate means and "
+        "standard deviations from mixOmics perf() WeightedVote.error.rate and "
+        "WeightedVote.error.rate.sd."
+    ),
+    "error_rate_majority": (
+        "Cross-validated majority-vote classification error-rate means and "
+        "standard deviations from mixOmics perf() MajorityVote.error.rate and "
+        "MajorityVote.error.rate.sd."
+    ),
+    "feature_component_correlation": (
+        "Pearson correlations between features selected on any fitted component "
+        "and every component's sample scores in their own block. These "
+        "correlations correspond to the coordinates computed by mixOmics "
+        "plotVar(). Each row has a unique generated id, a string feature ID, "
+        "a block label, and comp1, comp2, etc. columns in component order."
+    ),
+    "feature_similarity": (
+        "Pairwise similarities between selected features. For each pair, "
+        "multiply the two feature-to-component correlations on each fitted "
+        "component and sum the products, as in mixOmics circosPlot()."
+    ),
+}
