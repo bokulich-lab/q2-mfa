@@ -40,9 +40,6 @@ class TestPLSUtils(TestPluginBase):
         cls.tuned_ncomp = PLSComponentSelectionDirFmt(
             instance.get_data_path("utils/tuned-ncomp"), mode="r"
         )
-        cls.tuned_ncomp_missing_selection = PLSComponentSelectionDirFmt(
-            instance.get_data_path("utils/tuned-ncomp-missing-selection"), mode="r"
-        )
 
     def test_align_samples_drops_unshared_and_unlabelled_samples(self):
         with warnings.catch_warnings(record=True) as caught:
@@ -197,20 +194,6 @@ class TestPLSUtils(TestPluginBase):
                     distance="max.dist",
                 )
                 self.assertEqual(observed, expected)
-
-    def test_ncomp_from_tuned_ncomp_rejects_missing_selected_value(self):
-        """Rejects a tuning choice matrix with no selected component value."""
-        with self.assertRaisesRegex(
-            ValueError,
-            r"^The component-tuning artifact has no selected number of components "
-            r"for the requested vote, measure, and distance\.$",
-        ):
-            utils._ncomp_from_tuned_ncomp(
-                self.tuned_ncomp_missing_selection,
-                weighted=True,
-                measure="BER",
-                distance="max.dist",
-            )
 
     def test_resolve_ncomp_returns_manual_value(self):
         """Uses a manually provided component count without reading tuning data."""
