@@ -274,7 +274,7 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         expected = pd.DataFrame(
             {"max.dist": [2, 1], "centroids.dist": [4, 3]},
             index=pd.Index(["Overall.ER", "Overall.BER"], name="id"),
-        ).astype("Int64")
+        ).astype("int64")
         assert_frame_equal(actual, expected)
 
     @patch("builtins.print")

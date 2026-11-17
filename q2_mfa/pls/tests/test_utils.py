@@ -183,7 +183,7 @@ class TestPLSUtils(TestPluginBase):
                 "sd": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08],
             }
         )
-        expected["component"] = expected["component"].astype("Int64")
+        expected["component"] = expected["component"].astype("int64")
         pd.testing.assert_frame_equal(observed, expected)
 
     def test_ncomp_from_tuned_ncomp_selects_requested_vote(self):
