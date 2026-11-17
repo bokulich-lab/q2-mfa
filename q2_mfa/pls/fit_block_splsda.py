@@ -17,7 +17,7 @@ from rachis.plugin import CaptureHolder
 from rpy2.robjects import ListVector
 from rpy2.robjects.packages import importr
 
-from q2_mfa.pls.descriptions import fit_descriptions
+from q2_mfa.pls.descriptions import fit_descriptions, tune_components_descriptions
 from q2_mfa.pls.types._format import (
     PLSComponentSelectionDirFmt,
     PLSFeatureSelectionDirFmt,
@@ -332,7 +332,13 @@ def _consensus_variates(
 def _write_fit_table(output_file, table: pd.DataFrame) -> None:
     ids = pd.array([str(index) for index in range(1, len(table) + 1)], dtype="string")
     table.insert(0, "id", ids)
-    table.attrs["description"] = fit_descriptions[output_file.name]
+    name = output_file.name
+    descriptions = (
+        tune_components_descriptions
+        if name in ("error_rate_weighted", "error_rate_majority")
+        else fit_descriptions
+    )
+    table.attrs["description"] = descriptions[name]
     output_file.write_data(table, pd.DataFrame)
 
 
