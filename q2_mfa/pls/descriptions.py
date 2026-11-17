@@ -183,45 +183,43 @@ fit_descriptions = {
         "model$loadings, with one row per feature and block."
     ),
     "scores": (
-        "Per-sample component scores for each input block and the outcome block "
-        "Y from mixOmics block.splsda() model$variates, plus "
-        "combined scores across the input blocks. "
-        "The average block contains the arithmetic "
-        "mean across input blocks, excluding the outcome block Y, to match "
-        "mixOmics plotIndiv(). The weighted_average block "
-        "multiplies each block's score by its signed model$weights value, sums "
-        "the products, and divides by the sum of weights for that component."
+        "Per-sample component scores for each input block and the outcome block Y from "
+        "mixOmics block.splsda() model$variates, plus combined scores across the input "
+        "blocks. The average block contains the arithmetic mean across input blocks, "
+        "excluding the outcome block Y, to match mixOmics plotIndiv(). The "
+        "weighted_average block multiplies each block's score by its signed "
+        "model$weights value, sums the products, and divides by the sum "
+        "of weights for that component."
     ),
     "weights": (
-        "Block weights from mixOmics block.splsda() model$weights. Each weight "
-        "is a signed Pearson correlation across samples between an input "
-        "block's scores and the outcome block Y's scores for the same component."
+        "Block weights from mixOmics block.splsda() model$weights. Each weight is a "
+        "signed Pearson correlation across samples between an input block's scores and "
+        "the outcome block Y's scores for the same component."
     ),
     "prop_expl_var": (
-        "Proportion of explained variance per block and latent component from "
-        "mixOmics block.splsda() model$prop_expl_var."
+        "Proportion of explained variance per block and latent component from mixOmics "
+        "block.splsda() model$prop_expl_var."
     ),
     "ave": (
-        "Average variance explained summaries from mixOmics block.splsda() "
-        "model$AVE. The metric column identifies AVE_X, AVE_outer, or AVE_inner. "
-        "AVE_X is reported by block. AVE_outer and AVE_inner use overall as "
-        "the block label."
+        "Average variance explained summaries from mixOmics block.splsda() model$AVE. "
+        "The metric column identifies AVE_X, AVE_outer, or AVE_inner. AVE_X is "
+        "reported by block. AVE_outer and AVE_inner use overall as the block label."
     ),
     "feature_stability": (
-        "Mean selection frequency across all cross-validation repeats for each "
-        "block, feature, and component. The per-repeat frequencies from mixOmics "
-        "perf() features$stable are summed and divided by the total number of "
-        "repeats. Features never selected for a component have a frequency of zero."
+        "Mean selection frequency across all cross-validation repeats for each block, "
+        "feature, and component. The per-repeat frequencies from mixOmics perf() "
+        "features$stable are summed and divided by the total number of repeats. "
+        "Features never selected for a component have a frequency of zero."
     ),
     "auc": (
-        "Per-component contrast AUC values and p-values from mixOmics perf() "
-        "results. In R, perf_result$auc[[component]] gives the matrix with "
-        "contrasts as rows and AUC and p-value as columns."
+        "Per-component contrast AUC values and p-values from mixOmics perf() results. "
+        "In R, perf_result$auc[[component]] gives the matrix with contrasts as rows "
+        "and AUC and p-value as columns."
     ),
     "feature_component_correlation": (
-        "Pearson correlations between features selected on any fitted component "
-        "and every component's sample scores in their own block. These "
-        "correlations correspond to the coordinates computed by mixOmics plotVar()."
+        "Pearson correlations between features selected on any fitted component and "
+        "every component's sample scores in their own block. These correlations "
+        "correspond to the coordinates computed by mixOmics plotVar()."
     ),
     "feature_similarity": (
         "Pairwise similarities between selected features. For each pair, "
