@@ -11,7 +11,8 @@ import secrets
 
 import numpy as np
 import pandas as pd
-from rachis import CategoricalMetadataColumn
+from q2templates.reports import matryoshka_template
+from rachis import CategoricalMetadataColumn, Metadata
 from rachis.plugin import CaptureHolder
 from rpy2.robjects import ListVector
 from rpy2.robjects.packages import importr
@@ -38,7 +39,7 @@ base = importr("base")
 mixomics = importr("mixOmics")
 
 
-def fit_block_splsda(
+def _fit_block_splsda(
     tables: pd.DataFrame,
     y: CategoricalMetadataColumn,
     design_matrix: pd.DataFrame = None,
@@ -111,6 +112,137 @@ def fit_block_splsda(
         **{"signif.threshold": signif_threshold},
     )
     return _serialize_fit(model, perf_result)
+
+
+def fit_block_splsda(
+    ctx,
+    tables,
+    y,
+    design_matrix=None,
+    design_weight=None,
+    tuned_components=None,
+    ncomp=None,
+    keepx=None,
+    feature_selection=None,
+    scale=True,
+    tol=1e-6,
+    max_iter=100,
+    near_zero_var=False,
+    validation="Mfold",
+    folds=10,
+    nrepeat=3,
+    signif_threshold=0.01,
+    distance="max.dist",
+    measure="BER",
+    weighted=True,
+    seed=None,
+    threads=1,
+):
+    """Fits DIABLO and reports sample scores and feature correlations.
+
+    Returns:
+        tuple[Artifact, Visualization]: Fitted model tables and an interactive
+            report corresponding to mixOmics plotIndiv() and plotVar().
+    """
+    fit = ctx.get_action("mfa", "_fit_block_splsda")
+    visualise = ctx.get_action("mfa", "_fit_block_splsda_visualiser")
+    (pls_results,) = fit(
+        tables=tables,
+        y=y,
+        design_matrix=design_matrix,
+        design_weight=design_weight,
+        tuned_components=tuned_components,
+        ncomp=ncomp,
+        keepx=keepx,
+        feature_selection=feature_selection,
+        scale=scale,
+        tol=tol,
+        max_iter=max_iter,
+        near_zero_var=near_zero_var,
+        validation=validation,
+        folds=folds,
+        nrepeat=nrepeat,
+        signif_threshold=signif_threshold,
+        distance=distance,
+        measure=measure,
+        weighted=weighted,
+        seed=seed,
+        threads=threads,
+    )
+    (visualization,) = visualise(pls_results=pls_results, y=y)
+    return pls_results, visualization
+
+
+def _fit_block_splsda_visualiser(ctx, pls_results, y):
+    """Plots fitted sample scores and selected feature-component correlations.
+
+    Uses per-block and consensus sample scores for plotIndiv()-style plots,
+    and feature-component correlations for a plotVar()-style correlation
+    scatterplot. All fitted components are selectable in vizard; components
+    one and two are initially shown. Single-component fits use tables.
+
+    Returns:
+        Visualization: A report containing sample and feature views.
+    """
+    scatterplot = ctx.get_action("vizard", "scatterplot_2d")
+    correlation_plot = ctx.get_action("vizard", "scatterplot_correlation")
+    tabulate = ctx.get_action("metadata", "tabulate")
+    fitted = pls_results.view(PLSFitDirFmt)
+    block_names = fitted.weights.view(pd.DataFrame)["block"].unique()
+    score_metadata = fitted.scores.view(Metadata)
+    feature_metadata = fitted.feature_component_correlation.view(Metadata)
+
+    axes = [column for column in score_metadata.columns if column.startswith("comp")]
+    target = y.to_series()
+    sample_plots = {}
+    for group, names in (
+        ("block", block_names),
+        ("method", ("average", "weighted_average")),
+    ):
+        for name in names:
+            block_literal = name.replace("'", "''")
+            ids = score_metadata.get_ids(where=f"block = '{block_literal}'")
+            scores = (
+                score_metadata.filter_ids(ids).to_dataframe().set_index("sample")[axes]
+            )
+            scores["Target"] = target.reindex(scores.index)
+            metadata = Metadata(scores.rename_axis("sample-id"))
+            title = f"DIABLO sample scores: {name}"
+            if len(axes) < 2:
+                (plot,) = tabulate(input=metadata)
+            else:
+                (plot,) = scatterplot(
+                    metadata=metadata,
+                    x_measure=axes[0],
+                    y_measure=axes[1],
+                    color_by="Target",
+                    title=title,
+                )
+            sample_plots[f"{group}: {name}"] = plot
+
+    if len(axes) < 2:
+        (feature_plot,) = tabulate(input=feature_metadata)
+    else:
+        (feature_plot,) = correlation_plot(
+            metadata=feature_metadata,
+            x_measure=axes[0],
+            y_measure=axes[1],
+            color_by="block",
+            title="DIABLO feature-component correlations",
+        )
+    samples = ctx.make_report(matryoshka_template, sample_plots)
+    return ctx.make_report(
+        matryoshka_template,
+        {"Sample scores": samples, "Feature correlations": feature_plot},
+        descriptions={
+            "Sample scores": (
+                fit_descriptions["scores"]
+                + " Colors show the target classes. For one-component fits, "
+                "coordinates are shown as tables."
+            ),
+            "Feature correlations": fit_descriptions["feature_component_correlation"],
+        },
+    )
 
 
 def _serialize_fit(model, perf_result) -> PLSFitDirFmt:

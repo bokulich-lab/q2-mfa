@@ -203,7 +203,7 @@ class TestUsageExamples(TestPluginBase):
     def test_fit_block_splsda_nutrimouse(self):
         """Executes the fit example and compares every output to R fixtures."""
         use = ExecutionUsage()
-        action = self.plugin.methods["fit_block_splsda"]
+        action = self.plugin.pipelines["fit_block_splsda"]
         action.examples["nutrimouse"](use)
         outputs = use.render()
 

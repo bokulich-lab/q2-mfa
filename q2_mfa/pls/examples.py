@@ -170,7 +170,9 @@ def fit_block_splsda_nutrimouse(use):
             seed=42,
             threads=1,
         ),
-        use.UsageOutputNames(pls_results="fit_nutrimouse"),
+        use.UsageOutputNames(
+            pls_results="fit_nutrimouse", visualization="fit_nutrimouse_plots"
+        ),
     )
 
 
