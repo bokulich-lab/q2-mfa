@@ -257,9 +257,7 @@ def _resolve_ncomp(
         ValueError: If exactly one of a manual count and tuning artifact is not
             provided.
     """
-    manual_ncomp = ncomp is not None and (
-        not isinstance(ncomp, CaptureHolder) or ncomp.is_set
-    )
+    manual_ncomp = ncomp.is_set
     has_tuned_ncomp = tuned_ncomp is not None
     if manual_ncomp == has_tuned_ncomp:
         raise ValueError("Provide exactly one of ncomp or a tuned-ncomp artifact.")
