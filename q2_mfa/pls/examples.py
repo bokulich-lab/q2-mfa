@@ -14,7 +14,12 @@ from rpy2.robjects import conversion, default_converter, pandas2ri
 from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
 
-from q2_mfa.pls.types import AssociationMatrix, PLSComponentSelection
+from q2_mfa.pls.select_features_block_splsda import _serialize_feature_selection
+from q2_mfa.pls.types import (
+    AssociationMatrix,
+    PLSComponentSelection,
+    PLSFeatureSelection,
+)
 
 base = importr("base")
 mixomics = importr("mixOmics")
@@ -62,6 +67,20 @@ def nutrimouse_association_matrix_factory():
     return Artifact.import_data(AssociationMatrix, design)
 
 
+def nutrimouse_fit_feature_selection_factory():
+    selected = pd.DataFrame(
+        {"gene": [5, 5], "lipid": [9, 5]},
+        index=pd.Index([1, 2], name="component"),
+    )
+    error_rates = pd.DataFrame(
+        columns=["component", "mean", "sd", "keepx_gene", "keepx_lipid"],
+        dtype=float,
+    )
+    return Artifact.import_data(
+        PLSFeatureSelection, _serialize_feature_selection(error_rates, selected)
+    )
+
+
 def select_features_block_splsda_nutrimouse(use):
     use.comment(
         "Load the nutrimouse dataset bundled with mixOmics: 40 mice, 120 "
@@ -101,6 +120,57 @@ def select_features_block_splsda_nutrimouse(use):
             feature_selection="feature_selection_nutrimouse",
             visualization="feature_selection_report",
         ),
+    )
+
+
+def fit_block_splsda_nutrimouse(use):
+    """Fits nutrimouse DIABLO with the independent R fixtures' settings."""
+    use.comment(
+        "Fit the nutrimouse diet outcome using the gene and lipid blocks bundled "
+        "with mixOmics. Illustrative prebuilt artifacts supply two components "
+        "(weighted BER, max.dist) and keepX counts of 5,5 for gene and 9,5 for "
+        "lipid. Use the gene/lipid association matrix with integration weight "
+        "0.9 and evaluate with 5-fold cross-validation and 10 repeats. Increase "
+        "the number of folds and repeats for a real analysis."
+    )
+    use.comment("DOI: https://doi.org/10.1002/hep.21510")
+    tables = use.init_artifact_collection(
+        "nutrimouse_tables", nutrimouse_tables_factory
+    )
+    metadata = use.init_metadata("nutrimouse_metadata", nutrimouse_metadata_factory)
+    diet = use.get_metadata_column("diet", "diet", metadata)
+    tuned_components = use.init_artifact(
+        "nutrimouse_tuned_ncomp", nutrimouse_tuned_ncomp_factory
+    )
+    feature_selection = use.init_artifact(
+        "nutrimouse_fit_feature_selection", nutrimouse_fit_feature_selection_factory
+    )
+    design_matrix = use.init_artifact(
+        "nutrimouse_association_matrix", nutrimouse_association_matrix_factory
+    )
+    use.action(
+        use.UsageAction(plugin_id="mfa", action_id="fit_block_splsda"),
+        use.UsageInputs(
+            tables=tables,
+            y=diet,
+            tuned_components=tuned_components,
+            feature_selection=feature_selection,
+            design_matrix=design_matrix,
+            scale=True,
+            tol=1e-6,
+            max_iter=100,
+            near_zero_var=False,
+            validation="Mfold",
+            folds=5,
+            nrepeat=10,
+            signif_threshold=0.01,
+            distance="max.dist",
+            measure="BER",
+            weighted=True,
+            seed=42,
+            threads=1,
+        ),
+        use.UsageOutputNames(pls_results="fit_nutrimouse"),
     )
 
 
