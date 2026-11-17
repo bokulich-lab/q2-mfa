@@ -6,32 +6,6 @@ on:
     branches: ["main"]
 
 jobs:
-  ci-tag-auth-probe:
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 35
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout utilities fix branch
-        uses: actions/checkout@v6.0.2
-        with:
-          repository: VinzentRisch/utilities
-          ref: fix/ci-github-tag-auth
-          path: utilities
-          persist-credentials: false
-
-      - name: Install requests
-        run: python -m pip install requests
-
-      - name: Fetch latest tags with the Actions token
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          test -n "$GITHUB_TOKEN"
-          python ./utilities/ci/get-tags.py | tee tags.txt
-          grep -Eq '^latest-dev-tag=[0-9]' tags.txt
-          grep -Eq '^latest-stable-tag=[0-9]' tags.txt
-
   ci:
     uses: bokulich-lab/utilities/.github/workflows/ci.yaml@main
     with:
