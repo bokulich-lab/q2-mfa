@@ -4,6 +4,8 @@
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file LICENSE, distributed with this software.
+from pathlib import Path
+
 import pandas as pd
 from rachis.plugin.testing import TestPluginBase
 
@@ -31,8 +33,10 @@ class TestTuneComponentsSPLSDA(TestPluginBase):
             validation="loo",
             nrepeat=1,
         )
-        rates = data.error_rate.view(pd.DataFrame)
-        choices = data.choice_matrix.view(pd.DataFrame)
+        rates = dict(data.error_rate.iter_views(pd.DataFrame))[Path("error_rate.jsonl")]
+        choices = dict(data.choice_matrix.iter_views(pd.DataFrame))[
+            Path("choice_matrix.jsonl")
+        ]
         self.assertEqual(rates["component"].tolist(), [1] * 6)
         self.assertTrue(rates["sd"].isna().all())
         self.assertEqual(choices.drop(columns="id").to_numpy().tolist(), [[1] * 3] * 2)

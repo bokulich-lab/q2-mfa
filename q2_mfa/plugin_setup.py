@@ -34,8 +34,6 @@ from q2_mfa.pls import (
     PLSComponentSelectionDirFmt,
     PLSFeatureSelection,
     PLSFeatureSelectionDirFmt,
-    SPLSDAComponentSelection,
-    SPLSDAComponentSelectionDirFmt,
     _select_features_block_splsda,
     _select_features_block_splsda_visualiser,
     _tune_components_block_splsda,
@@ -585,29 +583,22 @@ single_table_metrics_description = (
 plugin.methods.register_function(
     function=tune_components_splsda,
     examples={"nutrimouse": tune_components_splsda_nutrimouse},
-    outputs=[("tune_components", SPLSDAComponentSelection)],
+    outputs=[("tune_components", PLSComponentSelection)],
     output_descriptions={"tune_components": single_table_metrics_description},
     **single_table_tuning_registration,
 )
 
 plugin.register_formats(
-    SPLSDAComponentSelectionDirFmt,
     ComponentAnalysisDirFmt,
     PLSComponentSelectionDirFmt,
     AssociationMatrixDirFmt,
     PLSFeatureSelectionDirFmt,
 )
 plugin.register_semantic_types(
-    SPLSDAComponentSelection,
     ComponentAnalysis,
     PLSComponentSelection,
     AssociationMatrix,
     PLSFeatureSelection,
-)
-plugin.register_artifact_class(
-    SPLSDAComponentSelection,
-    directory_format=SPLSDAComponentSelectionDirFmt,
-    description="Represents single-table sPLS-DA component tuning results.",
 )
 plugin.register_artifact_class(
     ComponentAnalysis,

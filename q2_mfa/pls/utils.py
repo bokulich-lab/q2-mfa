@@ -308,8 +308,8 @@ def _ncomp_from_tuned_ncomp(
     """
     Reads the component count chosen for a requested tuning criterion.
 
-    Reads the weighted- or majority-vote choice matrix from the current
-    component-tuning artifact.
+    Reads the single-table choice matrix or the requested weighted- or
+    majority-vote choice matrix from the component-tuning artifact.
 
     Args:
         tuned_ncomp (PLSComponentSelectionDirFmt): Component-tuning artifact
@@ -321,13 +321,17 @@ def _ncomp_from_tuned_ncomp(
     Returns:
         int: The uniquely selected number of components.
     """
-    requested_measure = "Overall.BER" if measure == "BER" else "Overall.ER"
-    matrix_file = (
-        tuned_ncomp.choice_matrix_weighted
-        if weighted
-        else tuned_ncomp.choice_matrix_majority
-    )
-    matrix = matrix_file.view(pd.DataFrame)
+    matrices = {
+        str(path): table
+        for path, table in tuned_ncomp.choice_matrix.iter_views(pd.DataFrame)
+    }
+    if "choice_matrix.jsonl" in matrices:
+        matrix = matrices["choice_matrix.jsonl"]
+        requested_measure = "BER" if measure == "BER" else "overall"
+    else:
+        vote = "weighted" if weighted else "majority"
+        matrix = matrices[f"choice_matrix_{vote}.jsonl"]
+        requested_measure = "Overall.BER" if measure == "BER" else "Overall.ER"
     selected_ncomp = matrix.loc[matrix["id"] == requested_measure, distance].iloc[0]
     return int(selected_ncomp)
 
