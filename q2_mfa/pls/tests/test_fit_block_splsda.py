@@ -18,12 +18,12 @@ from rpy2.robjects import r
 from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt, PLSFitDirFmt
 from q2_mfa.pls.examples import nutrimouse_metadata_factory, nutrimouse_tables_factory
 from q2_mfa.pls.fit_block_splsda import (
-    _block_keepx_from_feature_selection,
     _block_matrices_to_dataframe,
     _consensus_variates,
     _feature_component_correlations,
     _feature_similarity_to_dataframe,
     _fit_block_splsda_visualiser,
+    _keepx_from_feature_selection,
     _r_auc_to_dataframe,
     _r_ave_to_dataframe,
     _r_feature_stability_to_dataframe,
@@ -267,9 +267,9 @@ class TestFitBlockSPLSDA(TestPluginBase):
             self.feature_stability_expected,
         )
 
-    def test_block_keepx_from_feature_selection(self):
+    def test_keepx_from_feature_selection(self):
         self.assertEqual(
-            _block_keepx_from_feature_selection(
+            _keepx_from_feature_selection(
                 self.selection.view(PLSFeatureSelectionDirFmt), 2
             ),
             {"block-a": "1,2", "block-b": "2,1"},

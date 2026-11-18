@@ -5,7 +5,6 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-"""QIIME-facing DIABLO block sPLS-DA fitting action."""
 
 import secrets
 
@@ -37,6 +36,8 @@ from q2_mfa.pls.utils import (
 
 base = importr("base")
 mixomics = importr("mixOmics")
+
+descriptions = {**fit_descriptions, **tune_components_descriptions}
 
 
 def _fit_block_splsda(
@@ -250,7 +251,8 @@ def _serialize_fit(model, perf_result) -> PLSFitDirFmt:
     loadings = _r_named_frames(model.rx2("loadings"))
     variates = _r_named_frames(model.rx2("variates"))
     weights = _r_matrix_to_dataframe(base.as_matrix(model.rx2("weights")))
-    # mixOmics changes weight row names but retains the input block order
+    # mixOmics sanitizes weight row names (e.g. z-lipid becomes z.lipid).
+    # model$X preserves the original names in weight row order.
     weights.index = pd.Index([str(name) for name in model.rx2("X").names], name="block")
     directory_format = PLSFitDirFmt()
     _write_fit_table(
@@ -332,13 +334,7 @@ def _consensus_variates(
 def _write_fit_table(output_file, table: pd.DataFrame) -> None:
     ids = pd.array([str(index) for index in range(1, len(table) + 1)], dtype="string")
     table.insert(0, "id", ids)
-    name = output_file.name
-    descriptions = (
-        tune_components_descriptions
-        if name in ("error_rate_weighted", "error_rate_majority")
-        else fit_descriptions
-    )
-    table.attrs["description"] = descriptions[name]
+    table.attrs["description"] = descriptions[output_file.name]
     output_file.write_data(table, pd.DataFrame)
 
 
@@ -351,11 +347,11 @@ def _resolve_fit_keepx(
     )
     if manual_keepx == (feature_selection is not None):
         raise ValueError("Provide exactly one of 'keepx' or 'feature-selection'.")
-    block_keepx = CaptureHolder.get_or_set(
+    keepx = CaptureHolder.get_or_set(
         keepx,
-        lambda: _block_keepx_from_feature_selection(feature_selection, ncomp),
+        lambda: _keepx_from_feature_selection(feature_selection, ncomp),
     )
-    parsed = _parse_keepx_collection(block_keepx, block_names, ncomp)
+    parsed = _parse_keepx_collection(keepx, block_names, ncomp)
     if manual_keepx and any(len(counts) != ncomp for counts in parsed.values()):
         raise ValueError(
             f"Each keepx block must provide exactly {ncomp} feature counts, "
@@ -364,12 +360,11 @@ def _resolve_fit_keepx(
     return parsed
 
 
-def _block_keepx_from_feature_selection(
-    feature_selection, ncomp: int
-) -> dict[str, str]:
+def _keepx_from_feature_selection(feature_selection, ncomp: int) -> dict[str, str]:
     """Reads the wide keepX table into block-keyed parameter strings.
 
-    Orders the counts within each block by one-based component label.
+    Orders counts by one-based component label and converts them to strings
+    so the resolved keepx parameter can be recorded in provenance.
     """
     table = feature_selection.selected_features.view(pd.DataFrame)
     expected_components = list(range(1, ncomp + 1))
@@ -380,9 +375,7 @@ def _block_keepx_from_feature_selection(
         )
     table = table.drop(columns="id", errors="ignore").set_index("component")
     table = table.loc[expected_components]
-    return {
-        block: ",".join(str(int(value)) for value in table[block]) for block in table
-    }
+    return {block: ",".join(str(value) for value in table[block]) for block in table}
 
 
 def _block_matrices_to_dataframe(
