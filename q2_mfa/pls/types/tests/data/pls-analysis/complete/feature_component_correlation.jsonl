@@ -1,2 +1,3 @@
 {"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"feature","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"comp1","type":"number","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"Pearson correlations between features selected on any fitted component and every component's sample scores in their own block. These correlations correspond to the coordinates computed by mixOmics plotVar().","extra":{}}
-{"id":"1","feature":"metabolite-1","block":"metabolome","comp1":0.91}
+{"id":"1","feature":"X36b4","block":"metabolomics","comp1":-0.91}
+{"id":"2","feature":"g__Eggerthella","block":"microbiome","comp1":0.79}
