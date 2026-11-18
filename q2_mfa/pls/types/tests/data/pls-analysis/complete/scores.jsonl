@@ -1,6 +1,21 @@
 {"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"sample","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"comp1","type":"number","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"Per-sample component scores for each input block and the outcome block Y from mixOmics block.splsda() model$variates, plus combined scores across the input blocks. The average block contains the arithmetic mean across input blocks, excluding the outcome block Y, to match mixOmics plotIndiv(). The weighted_average block multiplies each block's score by its signed model$weights value, sums the products, and divides by the sum of weights for that component.","extra":{}}
 {"id":"1","sample":"1","block":"metabolomics","comp1":2.12}
-{"id":"2","sample":"1","block":"microbiome","comp1":-1.13}
-{"id":"3","sample":"1","block":"Y","comp1":0.71}
-{"id":"4","sample":"1","block":"average","comp1":2.83870312665319}
-{"id":"5","sample":"1","block":"weighted_average","comp1":2.82630329476369}
+{"id":"2","sample":"2","block":"metabolomics","comp1":1.42}
+{"id":"3","sample":"3","block":"metabolomics","comp1":-1.2}
+{"id":"4","sample":"4","block":"metabolomics","comp1":-2.34}
+{"id":"5","sample":"1","block":"microbiome","comp1":-1.13}
+{"id":"6","sample":"2","block":"microbiome","comp1":-0.62}
+{"id":"7","sample":"3","block":"microbiome","comp1":-2.11}
+{"id":"8","sample":"4","block":"microbiome","comp1":-1.51}
+{"id":"9","sample":"1","block":"Y","comp1":0.71}
+{"id":"10","sample":"2","block":"Y","comp1":0.71}
+{"id":"11","sample":"3","block":"Y","comp1":-0.71}
+{"id":"12","sample":"4","block":"Y","comp1":-0.71}
+{"id":"13","sample":"1","block":"average","comp1":0.495}
+{"id":"14","sample":"2","block":"average","comp1":0.4}
+{"id":"15","sample":"3","block":"average","comp1":-1.655}
+{"id":"16","sample":"4","block":"average","comp1":-1.925}
+{"id":"17","sample":"1","block":"weighted_average","comp1":0.5901885419}
+{"id":"18","sample":"2","block":"weighted_average","comp1":0.4597491155}
+{"id":"19","sample":"3","block":"weighted_average","comp1":-1.6283472083}
+{"id":"20","sample":"4","block":"weighted_average","comp1":-1.9493096892}
