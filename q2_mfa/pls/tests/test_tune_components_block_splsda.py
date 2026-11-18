@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pandas as pd
@@ -171,6 +172,15 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         self, mock_error_rate_metadata
     ):
         tuning = MagicMock()
+        tuning.view.return_value.error_rate.iter_views.return_value = [
+            (Path("error_rate_weighted.jsonl"), MagicMock()),
+            (Path("error_rate_majority.jsonl"), MagicMock()),
+        ]
+        weighted_choices, majority_choices = MagicMock(), MagicMock()
+        tuning.view.return_value.choice_matrix.iter_views.return_value = [
+            (Path("choice_matrix_weighted.jsonl"), weighted_choices),
+            (Path("choice_matrix_majority.jsonl"), majority_choices),
+        ]
         weighted_error_rates = MagicMock()
         majority_error_rates = MagicMock()
         mock_error_rate_metadata.side_effect = [
@@ -213,12 +223,8 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         )
         tabulate.assert_has_calls(
             [
-                call(
-                    input=tuning.view.return_value.choice_matrix_weighted.view(Metadata)
-                ),
-                call(
-                    input=tuning.view.return_value.choice_matrix_majority.view(Metadata)
-                ),
+                call(input=weighted_choices),
+                call(input=majority_choices),
             ]
         )
         self.assertEqual(mock_context.make_report.call_count, 3)
@@ -304,32 +310,40 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         directory_format.validate()
         serialized_tables = (
             (
-                directory_format.error_rate_weighted,
+                directory_format.error_rate,
+                "weighted",
                 self.expected_weighted_error_rates.reset_index(),
                 jsonl_descriptions["error_rate_weighted"],
             ),
             (
-                directory_format.error_rate_majority,
+                directory_format.error_rate,
+                "majority",
                 self.expected_majority_error_rates.reset_index(),
                 jsonl_descriptions["error_rate_majority"],
             ),
             (
-                directory_format.choice_matrix_weighted,
+                directory_format.choice_matrix,
+                "weighted",
                 self.expected_weighted_choices.reset_index(),
                 jsonl_descriptions["choice_matrix_weighted"],
             ),
             (
-                directory_format.choice_matrix_majority,
+                directory_format.choice_matrix,
+                "majority",
                 self.expected_majority_choices.reset_index(),
                 jsonl_descriptions["choice_matrix_majority"],
             ),
         )
 
-        for serialized, expected, description in serialized_tables:
-            with serialized.path_maker().open() as fh:
+        for serialized, vote, expected, description in serialized_tables:
+            with serialized.path_maker(vote=vote).open() as fh:
                 header = json.loads(next(fh))
             self.assertEqual(header["index"], [])
             self.assertEqual(header["description"], description)
             assert_frame_equal(
-                serialized.view(pd.DataFrame), expected, check_dtype=False
+                dict(serialized.iter_views(pd.DataFrame))[
+                    serialized.path_maker(vote=vote).relative_to(directory_format.path)
+                ],
+                expected,
+                check_dtype=False,
             )

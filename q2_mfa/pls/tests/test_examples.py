@@ -112,9 +112,12 @@ class TestUsageExamples(TestPluginBase):
         for vote in ("weighted", "majority"):
             expected_rates = self.expected_component_tuning[vote, "error-rates"]
             expected_choices = self.expected_component_tuning[vote, "choices"]
-            rates = getattr(data, f"error_rate_{vote}").view(Metadata).to_dataframe()
-            choice_file = getattr(data, f"choice_matrix_{vote}")
-            choices = choice_file.view(Metadata).to_dataframe()
+            rates = dict(data.error_rate.iter_views(Metadata))[
+                Path(f"error_rate_{vote}.jsonl")
+            ].to_dataframe()
+            choices = dict(data.choice_matrix.iter_views(Metadata))[
+                Path(f"choice_matrix_{vote}.jsonl")
+            ].to_dataframe()
             with self.subTest(vote=vote):
                 assert_frame_equal(rates, expected_rates, rtol=1e-8, atol=1e-10)
                 assert_frame_equal(choices, expected_choices, check_exact=True)

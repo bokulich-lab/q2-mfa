@@ -179,11 +179,19 @@ def _tune_components_block_visualisation(ctx, tune_components):
     tabulate = ctx.get_action("metadata", "tabulate")
     tuning_data = tune_components.view(PLSComponentSelectionDirFmt)
 
+    error_rates = {
+        str(path): metadata
+        for path, metadata in tuning_data.error_rate.iter_views(Metadata)
+    }
+    choices = {
+        str(path): metadata
+        for path, metadata in tuning_data.choice_matrix.iter_views(Metadata)
+    }
     weighted_error_rates = _error_rate_metadata(
-        tuning_data.error_rate_weighted.view(Metadata)
+        error_rates["error_rate_weighted.jsonl"]
     )
     majority_error_rates = _error_rate_metadata(
-        tuning_data.error_rate_majority.view(Metadata)
+        error_rates["error_rate_majority.jsonl"]
     )
     (weighted_error_rate_plot,) = lineplot(
         metadata=weighted_error_rates,
@@ -203,12 +211,8 @@ def _tune_components_block_visualisation(ctx, tune_components):
         color_palette="category20",
         title="sPLS-DA majority-vote error rates",
     )
-    (weighted_choice_matrix,) = tabulate(
-        input=tuning_data.choice_matrix_weighted.view(Metadata)
-    )
-    (majority_choice_matrix,) = tabulate(
-        input=tuning_data.choice_matrix_majority.view(Metadata)
-    )
+    (weighted_choice_matrix,) = tabulate(input=choices["choice_matrix_weighted.jsonl"])
+    (majority_choice_matrix,) = tabulate(input=choices["choice_matrix_majority.jsonl"])
 
     error_rate_report = ctx.make_report(
         matryoshka_template,
@@ -318,12 +322,16 @@ def _serialize_tune_components(
         "choice_matrix_majority"
     ]
 
-    directory_format.error_rate_weighted.write_data(error_rate_weighted, pd.DataFrame)
-    directory_format.error_rate_majority.write_data(error_rate_majority, pd.DataFrame)
-    directory_format.choice_matrix_weighted.write_data(
-        choice_matrix_weighted, pd.DataFrame
+    directory_format.error_rate.write_data(
+        error_rate_weighted, pd.DataFrame, vote="weighted"
     )
-    directory_format.choice_matrix_majority.write_data(
-        choice_matrix_majority, pd.DataFrame
+    directory_format.error_rate.write_data(
+        error_rate_majority, pd.DataFrame, vote="majority"
+    )
+    directory_format.choice_matrix.write_data(
+        choice_matrix_weighted, pd.DataFrame, vote="weighted"
+    )
+    directory_format.choice_matrix.write_data(
+        choice_matrix_majority, pd.DataFrame, vote="majority"
     )
     return directory_format

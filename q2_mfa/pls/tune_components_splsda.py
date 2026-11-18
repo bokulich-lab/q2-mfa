@@ -12,7 +12,7 @@ from rachis import CategoricalMetadataColumn
 from rachis.plugin import CaptureHolder
 from rpy2.robjects.packages import importr
 
-from q2_mfa.pls.types._format import SPLSDAComponentSelectionDirFmt
+from q2_mfa.pls.types._format import PLSComponentSelectionDirFmt
 from q2_mfa.pls.utils import (
     _align_samples,
     _build_bpparam,
@@ -43,7 +43,7 @@ def tune_components_splsda(
     signif_threshold: float = 0.01,
     seed: CaptureHolder[int] = None,
     threads: int = 1,
-) -> SPLSDAComponentSelectionDirFmt:
+) -> PLSComponentSelectionDirFmt:
     """Cross-validates a dense PLS-DA model to tune single-table components."""
     tables, target = _align_samples({"table": table}, y.to_series(), is_block=False)
     perf_model = _call_without_messages(
@@ -74,7 +74,7 @@ def tune_components_splsda(
     error_rates = _r_perf_error_rate_to_df(perf_result)
     _print_component_choice(choices)
 
-    data = SPLSDAComponentSelectionDirFmt()
+    data = PLSComponentSelectionDirFmt()
     _write_component_tuning_table(
         data.error_rate,
         error_rates,
