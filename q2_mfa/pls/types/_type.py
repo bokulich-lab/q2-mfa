@@ -10,4 +10,3 @@ from rachis.core.type import SemanticType
 PLSComponentSelection = SemanticType("PLSComponentSelection")
 AssociationMatrix = SemanticType("AssociationMatrix")
 PLSFeatureSelection = SemanticType("PLSFeatureSelection")
-SPLSDAComponentSelection = SemanticType("SPLSDAComponentSelection")
