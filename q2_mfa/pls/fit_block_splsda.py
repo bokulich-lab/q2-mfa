@@ -145,31 +145,12 @@ def fit_block_splsda(
         tuple[Artifact, Visualization]: Fitted model tables and an interactive
             report corresponding to mixOmics plotIndiv() and plotVar().
     """
+    fit_kwargs = locals().copy()
+    fit_kwargs.pop("ctx")
+
     fit = ctx.get_action("mfa", "_fit_block_splsda")
     visualise = ctx.get_action("mfa", "_fit_block_splsda_visualiser")
-    (pls_results,) = fit(
-        tables=tables,
-        y=y,
-        design_matrix=design_matrix,
-        design_weight=design_weight,
-        tuned_components=tuned_components,
-        ncomp=ncomp,
-        keepx=keepx,
-        feature_selection=feature_selection,
-        scale=scale,
-        tol=tol,
-        max_iter=max_iter,
-        near_zero_var=near_zero_var,
-        validation=validation,
-        folds=folds,
-        nrepeat=nrepeat,
-        signif_threshold=signif_threshold,
-        distance=distance,
-        measure=measure,
-        weighted=weighted,
-        seed=seed,
-        threads=threads,
-    )
+    (pls_results,) = fit(**fit_kwargs)
     (visualization,) = visualise(pls_results=pls_results, y=y)
     return pls_results, visualization
 
