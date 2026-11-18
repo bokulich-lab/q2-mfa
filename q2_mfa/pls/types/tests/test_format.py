@@ -11,6 +11,7 @@ from q2_mfa.pls import (
     AssociationMatrixDirFmt,
     PLSComponentSelectionDirFmt,
     PLSFeatureSelectionDirFmt,
+    SPLSDAComponentSelectionDirFmt,
 )
 
 
@@ -48,3 +49,13 @@ class TestPLSFeatureSelectionDirFmt(TestPluginBase):
 
     def test_complete_fixture_validates(self):
         PLSFeatureSelectionDirFmt(self.fixture_dir, mode="r").validate()
+
+
+class TestSPLSDAComponentSelectionDirFmt(TestPluginBase):
+    package = "q2_mfa.pls.types.tests"
+
+    def test_complete_fixture_validates(self):
+        """Validates the error rates and component choices in the new format."""
+        SPLSDAComponentSelectionDirFmt(
+            self.get_data_path("splsda-component-selection"), mode="r"
+        ).validate()

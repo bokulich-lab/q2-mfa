@@ -12,6 +12,7 @@ import pandas as pd
 from rachis.core.exceptions import RachisWarning
 from rachis.plugin import CaptureHolder
 from rpy2.robjects import (
+    NULL,
     IntVector,
     ListVector,
     conversion,
@@ -32,7 +33,7 @@ _call_without_messages = r("function(fun, ...) suppressMessages(fun(...))")
 
 
 def _align_samples(
-    tables: dict[str, pd.DataFrame], target: pd.Series
+    tables: dict[str, pd.DataFrame], target: pd.Series, *, is_block: bool = True
 ) -> tuple[dict[str, pd.DataFrame], pd.Series]:
     """
     Aligns feature tables and a categorical response to shared samples.
@@ -45,6 +46,7 @@ def _align_samples(
         tables (dict[str, pd.DataFrame]): Named feature tables indexed by
             sample ID.
         target (pd.Series): Categorical response values indexed by sample ID.
+        is_block (bool): Require at least two named predictor tables.
 
     Returns:
         tuple[dict[str, pd.DataFrame], pd.Series]: A tuple containing:
@@ -52,10 +54,10 @@ def _align_samples(
             - pd.Series: Aligned response values.
 
     Raises:
-        ValueError: If fewer than two feature tables are supplied or no samples
+        ValueError: If block mode receives fewer than two tables or no samples
             are shared by the feature tables and response.
     """
-    if len(tables) < 2:
+    if is_block and len(tables) < 2:
         raise ValueError("At least two named feature tables are required.")
     target = target.dropna()
     blocks = {**tables, "y": target.to_frame()}
@@ -123,6 +125,19 @@ def _build_bpparam(threads: int):
     return biocparallel.MulticoreParam()
 
 
+def _to_r_table(table: pd.DataFrame) -> RDataFrame:
+    """Converts a sample-by-feature table to a labeled R data frame."""
+    with localconverter(default_converter + pandas2ri.converter):
+        return conversion.get_conversion().py2rpy(table)
+
+
+def _to_r_target(target: pd.Series) -> FactorVector:
+    """Converts the aligned response to an R factor."""
+    with localconverter(default_converter + pandas2ri.converter):
+        r_target = conversion.get_conversion().py2rpy(target)
+    return base.factor(r_target)
+
+
 def _to_r_inputs(
     blocks: dict[str, pd.DataFrame],
     target: pd.Series,
@@ -152,14 +167,10 @@ def _to_r_inputs(
         rpy2.robjects.RObject, ListVector | None, ListVector | None]: Named R
         blocks, response factor, design, and optional keepX and prior selections.
     """
+    r_blocks = ListVector({name: _to_r_table(table) for name, table in blocks.items()})
     with localconverter(default_converter + pandas2ri.converter):
-        converter = conversion.get_conversion()
-        r_blocks = ListVector(
-            {name: converter.py2rpy(table) for name, table in blocks.items()}
-        )
-        r_design = converter.py2rpy(design)
-        r_target = converter.py2rpy(target)
-    r_target = base.factor(r_target)
+        r_design = conversion.get_conversion().py2rpy(design)
+    r_target = _to_r_target(target)
     r_keep_x, r_already_tested_x = (
         (
             ListVector({name: IntVector(values) for name, values in counts.items()})
@@ -181,11 +192,15 @@ def _r_matrix_to_dataframe(matrix: Matrix) -> pd.DataFrame:
 
 
 def _r_error_rate_matrices_to_dataframe(
-    mean_rates: Matrix, sd_rates: Matrix, row_name: str
+    mean_rates: Matrix, sd_rates: Matrix | None, row_name: str
 ) -> pd.DataFrame:
     """Matches SDs to means by row and component in the mean matrix's order."""
     mean = _r_matrix_to_dataframe(mean_rates).stack(future_stack=True)
-    sd = _r_matrix_to_dataframe(sd_rates).stack(future_stack=True)
+    sd = (
+        pd.Series(np.nan, index=mean.index)
+        if sd_rates is None
+        else _r_matrix_to_dataframe(sd_rates).stack(future_stack=True)
+    )
     rates = (
         pd.DataFrame({"mean": mean, "sd": sd.reindex(mean.index)})
         .rename_axis(index=[row_name, "component"])
@@ -195,11 +210,13 @@ def _r_error_rate_matrices_to_dataframe(
     return rates
 
 
-def _r_perf_error_rate_to_df(perf_result: ListVector, vote: str) -> pd.DataFrame:
+def _r_perf_error_rate_to_df(
+    perf_result: ListVector, vote: str | None = None
+) -> pd.DataFrame:
     """
-    Converts mixOmics vote error-rate means and standard deviations to rows.
+    Converts mixOmics error-rate means and standard deviations to rows.
 
-    Combines the requested vote's error-rate and standard-deviation matrices
+    Combines single-table or vote-specific error-rate and standard-deviation matrices
     into one table with distance measure, class, component, mean, and standard
     deviation columns.
 
@@ -207,11 +224,26 @@ def _r_perf_error_rate_to_df(perf_result: ListVector, vote: str) -> pd.DataFrame
         perf_result (rpy2.robjects.vectors.ListVector): Result returned by
             mixOmics ``perf()``.
         vote (str): Vote type to extract, such as ``WeightedVote`` or
-            ``MajorityVote``.
+            ``MajorityVote``. Omit for single-table results.
 
     Returns:
-        pd.DataFrame: Error-rate records for the requested vote.
+        pd.DataFrame: Error-rate records by prediction distance and component.
     """
+    if vote is None:
+        means = perf_result.rx2("error.rate")
+        sds = perf_result.rx2("error.rate.sd")
+        tables = []
+        for measure, label in (("overall", "Overall.ER"), ("BER", "Overall.BER")):
+            sd = sds.rx2(measure) if sds is not NULL else NULL
+            rates = _r_error_rate_matrices_to_dataframe(
+                base.t(means.rx2(measure)),
+                base.t(sd) if sd is not NULL else None,
+                "distance",
+            )
+            rates.insert(1, "class", label)
+            tables.append(rates)
+        return pd.concat(tables, ignore_index=True)
+
     mean_error_rates = perf_result.rx2(f"{vote}.error.rate")
     sd_error_rates = perf_result.rx2(f"{vote}.error.rate.sd")
     tables = []
@@ -298,3 +330,31 @@ def _ncomp_from_tuned_ncomp(
     matrix = matrix_file.view(pd.DataFrame)
     selected_ncomp = matrix.loc[matrix["id"] == requested_measure, distance].iloc[0]
     return int(selected_ncomp)
+
+
+def _r_choice_matrix_to_df(perf_result, vote: str | None = None) -> pd.DataFrame:
+    """Converts component choices to a metadata-compatible table."""
+    matrix = perf_result.rx2("choice.ncomp")
+    if vote is not None:
+        matrix = matrix.rx2(vote)
+    return _r_matrix_to_dataframe(matrix).rename_axis("id").astype("int64")
+
+
+def _print_component_choice(
+    choice_table: pd.DataFrame, vote: str | None = None
+) -> None:
+    """Prints the component choices, with a vote label for block results."""
+    label = f"{vote} component-choice matrix" if vote else "Component-choice matrix"
+    print(f"{label}:\n", flush=True)
+    print(f"{choice_table.to_string()}\n", flush=True)
+
+
+def _write_component_tuning_table(file, table, description, *, error_rates=False):
+    """Writes a tuning table with stable metadata IDs and a JSONL description."""
+    if error_rates:
+        table = table.copy()
+        table.insert(0, "id", [str(index) for index in range(1, len(table) + 1)])
+    else:
+        table = table.reset_index()
+    table.attrs["description"] = description
+    file.write_data(table, pd.DataFrame)

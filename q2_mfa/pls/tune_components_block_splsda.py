@@ -19,7 +19,8 @@ from q2_mfa.pls.utils import (
     _align_samples,
     _build_bpparam,
     _call_without_messages,
-    _r_matrix_to_dataframe,
+    _print_component_choice,
+    _r_choice_matrix_to_df,
     _r_perf_error_rate_to_df,
     _resolve_design,
     _to_r_inputs,
@@ -265,17 +266,6 @@ def _error_rate_metadata(error_rates: Metadata) -> Metadata:
         error_rates["distance"].astype(str) + ": " + error_rates["class"].astype(str)
     )
     return Metadata(error_rates)
-
-
-def _r_choice_matrix_to_df(perf_result, vote: str) -> pd.DataFrame:
-    """Converts one vote's component choices to a metadata-compatible table."""
-    matrix = perf_result.rx2("choice.ncomp").rx2(vote)
-    return _r_matrix_to_dataframe(matrix).rename_axis("id").astype("int64")
-
-
-def _print_component_choice(choice_table: pd.DataFrame, vote: str) -> None:
-    print(f"{vote} component-choice matrix:\n", flush=True)
-    print(f"{choice_table.to_string()}\n", flush=True)
 
 
 def _serialize_tune_components(

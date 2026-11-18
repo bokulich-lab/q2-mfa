@@ -10,6 +10,13 @@ from q2_types.distance_matrix import LSMatFormat
 from q2_types.tabular import TableJSONLFileFormat
 
 
+class SPLSDAComponentSelectionDirFmt(model.DirectoryFormat):
+    """Stores single-table sPLS-DA component-selection diagnostics."""
+
+    error_rate = model.File("error_rate.jsonl", format=TableJSONLFileFormat)
+    choice_matrix = model.File("choice_matrix.jsonl", format=TableJSONLFileFormat)
+
+
 class PLSComponentSelectionDirFmt(model.DirectoryFormat):
     """Stores DIABLO component-selection diagnostics."""
 
