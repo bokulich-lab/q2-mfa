@@ -17,7 +17,6 @@ from rpy2.robjects import r
 from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt
 from q2_mfa.pls.examples import nutrimouse_tables_factory
 from q2_mfa.pls.fit_block_splsda import (
-    _block_matrices_to_dataframe,
     _consensus_variates,
     _feature_component_correlations,
     _feature_similarity_to_dataframe,
@@ -26,6 +25,7 @@ from q2_mfa.pls.fit_block_splsda import (
     _r_ave_to_dataframe,
     _r_feature_stability_to_dataframe,
     _r_named_frames,
+    _r_prop_expl_var_to_dataframe,
     _resolve_fit_keepx,
 )
 from q2_mfa.pls.select_features_block_splsda import _serialize_feature_selection
@@ -49,6 +49,12 @@ class TestFitBlockSPLSDA(TestPluginBase):
             ).rename_axis(None)
             for block in ("block_b", "block_a")
         }
+        cls.prop_expl_var_values = r["source"](
+            instance.get_data_path("fit/prop-expl-var-input.R")
+        ).rx2("value")
+        cls.prop_expl_var_expected = pd.read_csv(
+            instance.get_data_path("fit/prop-expl-var-expected.tsv"), sep="\t"
+        )
         cls.ave_values = r["source"](instance.get_data_path("fit/ave-input.R")).rx2(
             "value"
         )
@@ -111,7 +117,6 @@ class TestFitBlockSPLSDA(TestPluginBase):
         for name, identifier in (
             ("loadings", "feature"),
             ("scores", "sample"),
-            ("feature-component-correlation", "feature"),
         ):
             cls.nutrimouse_matrices[name] = {
                 block: table.set_index(identifier).drop(columns=["id", "block"])
@@ -130,6 +135,13 @@ class TestFitBlockSPLSDA(TestPluginBase):
         for block, expected in self.wide_tables.items():
             with self.subTest(block=block):
                 pd.testing.assert_frame_equal(observed[block], expected)
+
+    def test_r_prop_expl_var_to_dataframe(self):
+        """Preserves block order and aligns variance values by component name."""
+        pd.testing.assert_frame_equal(
+            _r_prop_expl_var_to_dataframe(self.prop_expl_var_values),
+            self.prop_expl_var_expected,
+        )
 
     def test_r_ave_to_dataframe(self):
         pd.testing.assert_frame_equal(
@@ -247,7 +259,7 @@ class TestFitBlockSPLSDA(TestPluginBase):
             self.nutrimouse_matrices["loadings"],
         )
         pd.testing.assert_frame_equal(
-            _block_matrices_to_dataframe(correlations, identifier="feature"),
+            correlations,
             self.nutrimouse_expected["feature-component-correlation"].drop(
                 columns="id"
             ),
@@ -273,7 +285,9 @@ class TestFitBlockSPLSDA(TestPluginBase):
                 )
 
     def test_feature_similarity_matches_circos_plot(self):
-        correlations = self.nutrimouse_matrices["feature-component-correlation"]
+        correlations = self.nutrimouse_expected["feature-component-correlation"].drop(
+            columns="id"
+        )
         for component_count, key in (
             (1, "feature-similarity-comp1"),
             (2, "feature-similarity"),
@@ -282,13 +296,9 @@ class TestFitBlockSPLSDA(TestPluginBase):
                 expected = self.nutrimouse_expected[key]
                 selected = set(expected["feature_1"]) | set(expected["feature_2"])
                 observed = _feature_similarity_to_dataframe(
-                    {
-                        block: table.loc[
-                            table.index.isin(selected),
-                            table.columns[:component_count],
-                        ]
-                        for block, table in correlations.items()
-                    }
+                    correlations.loc[correlations["feature"].isin(selected)].iloc[
+                        :, : 2 + component_count
+                    ]
                 )
                 pd.testing.assert_frame_equal(
                     observed,

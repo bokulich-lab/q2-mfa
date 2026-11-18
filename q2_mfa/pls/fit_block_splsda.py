@@ -166,13 +166,14 @@ def _serialize_fit(model, perf_result) -> PLSFitDirFmt:
     correlations = _feature_component_correlations(
         _r_named_frames(model.rx2("X")), variates, loadings
     )
+    similarities = _feature_similarity_to_dataframe(correlations)
     _write_fit_table(
         output_file=directory_format.feature_component_correlation,
-        table=_block_matrices_to_dataframe(correlations, identifier="feature"),
+        table=correlations,
     )
     _write_fit_table(
         output_file=directory_format.feature_similarity,
-        table=_feature_similarity_to_dataframe(correlations),
+        table=similarities,
     )
     return directory_format
 
@@ -294,41 +295,43 @@ def _r_prop_expl_var_to_dataframe(values: ListVector) -> pd.DataFrame:
     )
 
 
-def _r_ave_to_dataframe(values) -> pd.DataFrame:
+def _r_ave_to_dataframe(values: ListVector) -> pd.DataFrame:
     """Stores per-block AVE and labels overall rows AVE_outer and AVE_inner."""
-    rows = []
     vectors = (
         *values.rx2("AVE_X").items(),
         ("AVE_outer", values.rx2("AVE_outer")),
         ("AVE_inner", values.rx2("AVE_inner")),
     )
-    for block, vector in vectors:
-        row = {"block": str(block)}
-        row.update(
-            (f"comp{component}", float(value))
-            for component, value in enumerate(vector, start=1)
-        )
-        rows.append(row)
-    return pd.DataFrame(rows)
+    return pd.DataFrame(
+        {
+            "block": str(block),
+            **{
+                f"comp{component}": float(value)
+                for component, value in enumerate(vector, start=1)
+            },
+        }
+        for block, vector in vectors
+    )
 
 
-def _r_feature_stability_to_dataframe(stable) -> pd.DataFrame:
+def _r_feature_stability_to_dataframe(
+    selection_frequencies: ListVector,
+) -> pd.DataFrame:
     """Builds wide component tables and averages frequencies across CV repeats.
 
     A feature omitted from a repeat was selected in zero folds, so its
     contribution is zero and the repeat still counts in the denominator.
 
     Args:
-        stable: R selection frequencies nested by repeat, block, and component
-            from ``perf_result$features$stable``.
+        selection_frequencies (ListVector): R selection frequencies nested by
+            repeat, block, and component from ``perf_result$features$stable``.
 
     Returns:
         pd.DataFrame: One row per block and feature, with mean selection
-            frequencies in ``comp1``, ``comp2``, etc. columns. Features absent
-            from every repeat for a component have a frequency of zero.
+            frequencies in ``comp1``, ``comp2``, etc. columns.
     """
     repeat_tables = []
-    for repeat_values in stable:
+    for repeat_values in selection_frequencies:
         blocks = {}
         for block_name, components in repeat_values.items():
             blocks[str(block_name)] = pd.DataFrame(
@@ -345,31 +348,30 @@ def _r_feature_stability_to_dataframe(stable) -> pd.DataFrame:
         pd.concat(repeat_tables, ignore_index=True)
         .groupby(["feature", "block"])
         .sum()
-        .div(len(stable))
+        .div(len(selection_frequencies))
         .reset_index()
     )
 
 
-def _r_auc_to_dataframe(auc) -> pd.DataFrame:
+def _r_auc_to_dataframe(auc: ListVector) -> pd.DataFrame:
     """Converts mixOmics per-component, per-contrast AUC results.
 
     Args:
-        auc: R list of per-component AUC matrices from ``perf_result$auc``.
+        auc (ListVector): R list of per-component AUC matrices from
+            ``perf_result$auc``.
 
     Returns:
         pd.DataFrame: Component, contrast, AUC, and p-value records.
     """
-    columns = ["component", "contrast", "auc", "p_value"]
     records = []
     for component, values in enumerate(auc, start=1):
         auc_table = (
             _r_matrix_to_dataframe(values)
             .rename(columns={"AUC": "auc", "p-value": "p_value"})
-            .rename_axis("contrast")
-            .reset_index()
+            .reset_index(names="contrast")
         )
         auc_table.insert(0, "component", component)
-        records.append(auc_table[columns])
+        records.append(auc_table)
     return pd.concat(records, ignore_index=True)
 
 
@@ -377,8 +379,8 @@ def _feature_component_correlations(
     blocks: dict[str, pd.DataFrame],
     variates: dict[str, pd.DataFrame],
     loadings: dict[str, pd.DataFrame],
-) -> dict[str, pd.DataFrame]:
-    """Returns feature-by-component Pearson correlations for each fitted block.
+) -> pd.DataFrame:
+    """Returns Pearson correlations with one row per block and selected feature.
 
     Selects features with a nonzero loading on any fitted component. Each
     correlation uses the samples with both a feature value and a component
@@ -396,18 +398,15 @@ def _feature_component_correlations(
                 for component, scores in block_variates.items()
             }
         )
-    return correlations
+    return _block_matrices_to_dataframe(correlations, identifier="feature")
 
 
-def _feature_similarity_to_dataframe(
-    correlations: dict[str, pd.DataFrame],
-) -> pd.DataFrame:
+def _feature_similarity_to_dataframe(correlations: pd.DataFrame) -> pd.DataFrame:
     """Returns one dot product of component correlations per feature pair."""
-    combined = pd.concat(correlations, names=["block", "feature"])
-    blocks = combined.index.get_level_values("block")
-    features = combined.index.get_level_values("feature")
-    values = combined.to_numpy()
-    first, second = np.triu_indices(len(combined), k=1)
+    blocks = correlations["block"].to_numpy()
+    features = correlations["feature"].to_numpy()
+    values = correlations.drop(columns=["feature", "block"]).to_numpy()
+    first, second = np.triu_indices(len(correlations), k=1)
     return pd.DataFrame(
         {
             "block_1": blocks[first],
