@@ -10,6 +10,8 @@ from q2_mfa.pls import (
     AssociationMatrixDirFmt,
     PLSComponentSelection,
     PLSComponentSelectionDirFmt,
+    PLSFit,
+    PLSFitDirFmt,
 )
 
 
@@ -31,3 +33,13 @@ class TestPLSTypes(TestPluginBase):
         self.assertSemanticTypeRegisteredToFormat(
             AssociationMatrix, AssociationMatrixDirFmt
         )
+
+
+class TestPLSFitType(TestPluginBase):
+    package = "q2_mfa.pls.types.tests"
+
+    def test_semantic_type_registration(self):
+        self.assertRegisteredSemanticType(PLSFit)
+
+    def test_semantic_type_to_format_registration(self):
+        self.assertSemanticTypeRegisteredToFormat(PLSFit, PLSFitDirFmt)

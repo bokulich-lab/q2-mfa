@@ -34,6 +34,8 @@ from q2_mfa.pls import (
     PLSComponentSelectionDirFmt,
     PLSFeatureSelection,
     PLSFeatureSelectionDirFmt,
+    PLSFit,
+    PLSFitDirFmt,
     _select_features_block_splsda,
     _select_features_block_splsda_visualiser,
     _tune_components_block_splsda,
@@ -541,12 +543,14 @@ plugin.pipelines.register_function(
 )
 
 plugin.register_formats(
+    PLSFitDirFmt,
     ComponentAnalysisDirFmt,
     PLSComponentSelectionDirFmt,
     AssociationMatrixDirFmt,
     PLSFeatureSelectionDirFmt,
 )
 plugin.register_semantic_types(
+    PLSFit,
     ComponentAnalysis,
     PLSComponentSelection,
     AssociationMatrix,
@@ -576,6 +580,12 @@ plugin.register_artifact_class(
     PLSFeatureSelection,
     directory_format=PLSFeatureSelectionDirFmt,
     description="Represents PLS feature-selection results produced by mixOmics.",
+)
+
+plugin.register_artifact_class(
+    PLSFit,
+    directory_format=PLSFitDirFmt,
+    description="Represents fitted PLS model result tables produced by mixOmics.",
 )
 
 importlib.import_module("q2_mfa.component_analysis.types._transformer")

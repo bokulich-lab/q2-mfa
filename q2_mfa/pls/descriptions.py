@@ -110,7 +110,7 @@ report_descriptions = {
 }
 
 
-jsonl_descriptions = {
+tune_components_descriptions = {
     "error_rate_weighted": (
         "Cross-validated weighted-vote error-rate means and standard "
         "deviations from mixOmics perf() WeightedVote.error.rate and "
@@ -173,5 +173,57 @@ feature_selection_descriptions = {
         "Selected keepX feature-count matrix with one-based components as "
         "rows and input blocks as columns from mixOmics "
         "tune.block.splsda() choice.keepX."
+    ),
+}
+
+
+fit_descriptions = {
+    "loadings": (
+        "Per-feature component loading weights from mixOmics block.splsda() "
+        "model$loadings, with one row per feature and block."
+    ),
+    "scores": (
+        "Per-sample component scores for each input block and the outcome block Y from "
+        "mixOmics block.splsda() model$variates, plus combined scores across the input "
+        "blocks. The average block contains the arithmetic mean across input blocks, "
+        "excluding the outcome block Y, to match mixOmics plotIndiv(). The "
+        "weighted_average block multiplies each block's score by its signed "
+        "model$weights value, sums the products, and divides by the sum "
+        "of weights for that component."
+    ),
+    "weights": (
+        "Block weights from mixOmics block.splsda() model$weights. Each weight is a "
+        "signed Pearson correlation across samples between an input block's scores and "
+        "the outcome block Y's scores for the same component."
+    ),
+    "prop_expl_var": (
+        "Proportion of explained variance per block and latent component from mixOmics "
+        "block.splsda() model$prop_expl_var."
+    ),
+    "ave": (
+        "Average variance explained summaries from mixOmics block.splsda() model$AVE. "
+        "AVE_X is reported by block. The overall summaries use AVE_outer and "
+        "AVE_inner as block labels."
+    ),
+    "feature_stability": (
+        "Mean selection frequency across all cross-validation repeats for each block, "
+        "feature, and component. The per-repeat frequencies from mixOmics perf() "
+        "features$stable are summed and divided by the total number of repeats. "
+        "Features never selected for a component have a frequency of zero."
+    ),
+    "auc": (
+        "Per-component contrast AUC values and p-values from mixOmics perf() results. "
+        "In R, perf_result$auc[[component]] gives the matrix with contrasts as rows "
+        "and AUC and p-value as columns."
+    ),
+    "feature_component_correlation": (
+        "Pearson correlations between features selected on any fitted component and "
+        "every component's sample scores in their own block. These correlations "
+        "correspond to the coordinates computed by mixOmics plotVar()."
+    ),
+    "feature_similarity": (
+        "Pairwise similarities between selected features. For each pair, "
+        "multiply the two feature-to-component correlations on each fitted "
+        "component and sum the products, as in mixOmics circosPlot()."
     ),
 }

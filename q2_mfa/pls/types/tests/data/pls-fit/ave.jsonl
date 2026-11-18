@@ -1,0 +1,6 @@
+{"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"comp1","type":"number","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"Average variance explained summaries from mixOmics block.splsda() model$AVE. AVE_X is reported by block. The overall summaries use AVE_outer and AVE_inner as block labels.","extra":{}}
+{"id":"1","block":"metabolomics","comp1":0.48}
+{"id":"2","block":"microbiome","comp1":0.36}
+{"id":"3","block":"Y","comp1":0.56}
+{"id":"4","block":"AVE_outer","comp1":0.37}
+{"id":"5","block":"AVE_inner","comp1":0.6}
