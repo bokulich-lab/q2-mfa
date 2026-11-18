@@ -18,7 +18,11 @@ from rachis.plugin.testing import TestPluginBase
 from rachis.sdk.usage import ExecutionUsage
 
 import q2_mfa
-from q2_mfa.pls import PLSComponentSelectionDirFmt, PLSFeatureSelectionDirFmt
+from q2_mfa.pls import (
+    PLSComponentSelectionDirFmt,
+    PLSFeatureSelectionDirFmt,
+    PLSFitDirFmt,
+)
 from q2_mfa.plugin_setup import plugin
 
 
@@ -67,6 +71,7 @@ class TestUsageExamples(TestPluginBase):
 
     @classmethod
     def setUpClass(cls):
+        """Loads shared Nutrimouse reference tables."""
         super().setUpClass()
         instance = cls()
         cls.expected_error_rates = pd.read_csv(
@@ -171,4 +176,23 @@ class TestUsageExamples(TestPluginBase):
         self.assertEqual(
             list(report_index["Error-rate heatmaps"]["children"]),
             ["Component 1", "Component 2"],
+        )
+
+    def test_fit_block_splsda_nutrimouse(self):
+        """Fits Nutrimouse using the component and feature selection artifacts."""
+        use = ExecutionUsage()
+        action = self.plugin.methods["fit_block_splsda"]
+        action.examples["nutrimouse"](use)
+        outputs = use.render()
+
+        fitted = outputs["fit_nutrimouse"].execute().view(PLSFitDirFmt)
+        fitted.validate()
+
+        loadings = fitted.loadings.view(pd.DataFrame).set_index("block").drop(index="Y")
+        selected_counts = (
+            loadings.filter(regex=r"^comp\d+$").ne(0).groupby(level="block").sum()
+        )
+        self.assertEqual(
+            selected_counts.to_dict(orient="index"),
+            {"gene": {"comp1": 5, "comp2": 5}, "lipid": {"comp1": 9, "comp2": 5}},
         )

@@ -14,8 +14,8 @@ from rachis.plugin import CaptureHolder, Collection, Str
 from rachis.plugin.testing import TestPluginBase
 from rpy2.robjects import r
 
-from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt, PLSFitDirFmt
-from q2_mfa.pls.examples import nutrimouse_metadata_factory, nutrimouse_tables_factory
+from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt
+from q2_mfa.pls.examples import nutrimouse_tables_factory
 from q2_mfa.pls.fit_block_splsda import (
     _consensus_variates,
     _feature_component_correlations,
@@ -127,30 +127,6 @@ class TestFitBlockSPLSDA(TestPluginBase):
         cls.nutrimouse_tables = nutrimouse_tables_factory()
         cls.nutrimouse_weights = (
             cls.nutrimouse_expected["weights"].set_index("block").drop(columns="id")
-        )
-
-    def test_fit_block_splsda_returns_fitted_scores(self):
-        """Fits Nutrimouse through mixOmics and validates the resulting artifact."""
-        response = nutrimouse_metadata_factory().get_column("diet")
-        (artifact,) = self.plugin.methods["fit_block_splsda"](
-            tables=self.nutrimouse_tables,
-            y=response,
-            design_weight=0.9,
-            ncomp=2,
-            keepx={"gene": "5,5", "lipid": "9,5"},
-            folds=2,
-            nrepeat=3,
-            seed=42,
-        )
-        fitted = artifact.view(PLSFitDirFmt)
-        fitted.validate()
-        scores = fitted.scores.view(pd.DataFrame)
-        self.assertEqual(set(scores["sample"]), set(response.to_series().index))
-        self.assertEqual(
-            set(scores["block"]), {"gene", "lipid", "Y", "average", "weighted_average"}
-        )
-        self.assertEqual(
-            list(scores.columns), ["id", "sample", "block", "comp1", "comp2"]
         )
 
     def test_r_named_frames(self):
