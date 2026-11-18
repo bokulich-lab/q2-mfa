@@ -142,3 +142,33 @@ def tune_components_block_splsda_nutrimouse(use):
             visualization="component_tuning_report",
         ),
     )
+
+
+def tune_components_splsda_nutrimouse(use):
+    """Demonstrates single-table component tuning with Nutrimouse lipids."""
+    use.comment(
+        "Use lipid measurements from the mixOmics Nutrimouse dataset to classify "
+        "40 mice by diet. Evaluate up to two components with three repeats of "
+        "three-fold cross-validation. The output contains cross-validated error "
+        "rates and the recommended component counts."
+    )
+    use.comment("DOI: https://doi.org/10.1002/hep.21510")
+    lipids = use.init_artifact("nutrimouse_lipids", lambda: _nutrimouse_table("lipid"))
+    metadata = use.init_metadata("nutrimouse_metadata", nutrimouse_metadata_factory)
+    diet = use.get_metadata_column("diet", "diet", metadata)
+    use.action(
+        use.UsageAction(plugin_id="mfa", action_id="tune_components_splsda"),
+        use.UsageInputs(
+            table=lipids,
+            y=diet,
+            ncomp=2,
+            validation="Mfold",
+            folds=3,
+            nrepeat=3,
+            seed=42,
+            threads=1,
+        ),
+        use.UsageOutputNames(
+            tune_components="tuned_components_nutrimouse_lipids",
+        ),
+    )
