@@ -202,8 +202,8 @@ fit_descriptions = {
     ),
     "ave": (
         "Average variance explained summaries from mixOmics block.splsda() model$AVE. "
-        "The metric column identifies AVE_X, AVE_outer, or AVE_inner. AVE_X is "
-        "reported by block. AVE_outer and AVE_inner use overall as the block label."
+        "AVE_X is reported by block. The overall summaries use AVE_outer and "
+        "AVE_inner as block labels."
     ),
     "feature_stability": (
         "Mean selection frequency across all cross-validation repeats for each block, "
