@@ -250,40 +250,36 @@ def _block_matrices_to_dataframe(
     *tables: dict[str, pd.DataFrame],
     identifier: str,
 ) -> pd.DataFrame:
-    """Concatenates block matrices while keeping component columns wide.
+    """Concatenates block matrices used for:
+        - loadings
+        - scores
+        - feature_component_correlation
+        - feature_stability
 
     Args:
-        tables (dict[str, pd.DataFrame]): Block-keyed matrices. Multiple
-            dictionaries retain separate entries even when block names repeat.
+        tables (dict[str, pd.DataFrame]): Block-keyed matrices.
         identifier (str): Column name for the matrix row labels, such as
             ``sample`` or ``feature``.
 
     Returns:
-        pd.DataFrame: String row identifiers, block labels, and component
-            columns with their original names, values, and order.
+        pd.DataFrame: Concatenated DataFrame.
     """
     records = []
     for blocks in tables:
         for block, table in blocks.items():
             working = table.copy()
             working.insert(0, "block", str(block))
-            working.insert(0, identifier, table.index.astype(str))
+            working.insert(0, identifier, working.index.astype(str))
             records.append(working)
     return pd.concat(records, ignore_index=True)
 
 
 def _r_named_frames(values: ListVector) -> dict[str, pd.DataFrame]:
-    """Converts each matrix in a named R list to a wide pandas table.
-
-    Preserves R list names as dictionary keys and matrix row and column
-    labels as DataFrame labels.
-
-    Args:
-        values: Named R list of numeric matrices with row and column labels.
-
-    Returns:
-        dict[str, pd.DataFrame]: One wide table per R list entry, with string
-            keys and labels in their original order.
+    """Converts each matrix in a named R list to a wide pandas table. Preserves R
+    list names as dictionary keys. Used for:
+        - loadings
+        - scores
+        - feature_component_correlation
     """
     return {
         str(name): _r_matrix_to_dataframe(value)
