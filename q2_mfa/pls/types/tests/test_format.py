@@ -57,7 +57,7 @@ class TestPLSFitDirFmt(TestPluginBase):
     @classmethod
     def setUpClass(cls):
         helper = cls()
-        cls.fixture_dir = Path(helper.get_data_path("pls-analysis/complete"))
+        cls.fixture_dir = Path(helper.get_data_path("pls-fit"))
 
     def test_complete_fixture_validates(self):
         PLSFitDirFmt(self.fixture_dir, mode="r").validate()
