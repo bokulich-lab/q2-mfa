@@ -228,7 +228,7 @@ def _fit_block_splsda_visualiser(ctx, pls_results, y):
     scores = ctx.make_report(
         matryoshka_template,
         score_plots,
-        descriptions={name: fit_descriptions["scores"] for name in score_plots},
+        descriptions={name: descriptions["scores"] for name in score_plots},
     )
     table_labels = {
         "loadings": "Loadings",
