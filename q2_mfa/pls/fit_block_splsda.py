@@ -295,20 +295,20 @@ def _r_prop_expl_var_to_dataframe(values: ListVector) -> pd.DataFrame:
 
 
 def _r_ave_to_dataframe(values) -> pd.DataFrame:
-    """Stores block and overall AVE vectors with one column per component."""
+    """Stores per-block AVE and labels overall rows AVE_outer and AVE_inner."""
     rows = []
-    for metric, vectors in (
-        ("AVE_X", values.rx2("AVE_X").items()),
-        ("AVE_outer", [("overall", values.rx2("AVE_outer"))]),
-        ("AVE_inner", [("overall", values.rx2("AVE_inner"))]),
-    ):
-        for block, vector in vectors:
-            row = {"metric": metric, "block": str(block)}
-            row.update(
-                (f"comp{component}", float(value))
-                for component, value in enumerate(vector, start=1)
-            )
-            rows.append(row)
+    vectors = (
+        *values.rx2("AVE_X").items(),
+        ("AVE_outer", values.rx2("AVE_outer")),
+        ("AVE_inner", values.rx2("AVE_inner")),
+    )
+    for block, vector in vectors:
+        row = {"block": str(block)}
+        row.update(
+            (f"comp{component}", float(value))
+            for component, value in enumerate(vector, start=1)
+        )
+        rows.append(row)
     return pd.DataFrame(rows)
 
 

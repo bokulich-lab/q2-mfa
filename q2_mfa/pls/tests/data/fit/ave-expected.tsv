@@ -1,5 +1,5 @@
-metric	block	comp1	comp2
-AVE_X	block_b	0.2	0.4
-AVE_X	block_a	0.3	0.5
-AVE_outer	overall	0.25	0.45
-AVE_inner	overall	0.6	0.8
+block	comp1	comp2
+block_b	0.2	0.4
+block_a	0.3	0.5
+AVE_outer	0.25	0.45
+AVE_inner	0.6	0.8
