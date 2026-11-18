@@ -40,6 +40,7 @@ from q2_mfa.pls import (
     _select_features_block_splsda_visualiser,
     _tune_components_block_splsda,
     _tune_components_block_visualisation,
+    fit_block_splsda,
     select_features_block_splsda,
     tune_components_block_splsda,
 )
@@ -538,6 +539,69 @@ plugin.pipelines.register_function(
         "use weighted voting when weighted is enabled and majority voting "
         "otherwise. For questions about the implementation or parameters, consult "
         "the mixOmics documentation: https://mixomics.org/methods/diablo/"
+    ),
+    citations=[citations["rohart2017mixomics"]],
+)
+
+fit_block_splsda_parameters = {
+    **component_tuning_parameters,
+    "ncomp": Int % Range(1, None),
+    "keepx": Collection[Str],
+    "distance": Str % Choices("max.dist", "centroids.dist", "mahalanobis.dist"),
+    "measure": Str % Choices("overall", "BER"),
+    "weighted": Bool,
+}
+fit_block_splsda_parameter_descriptions = {
+    **component_tuning_parameter_descriptions,
+    "ncomp": "Manual component count. Provide this value or tuned-components.",
+    "keepx": (
+        "One comma-separated feature-count string per named input block. "
+        "Each string must provide one count per fitted component, in component "
+        "order. Provide keepx or feature-selection."
+    ),
+    "distance": (
+        "Prediction-distance column used only to resolve ncomp from "
+        "tuned-components. Has no effect when ncomp is supplied manually. "
+        "Performance evaluation always uses all prediction distances."
+    ),
+    "measure": (
+        "Error-measure row used only to resolve ncomp from tuned-components: "
+        "overall error rate or balanced error rate (BER). Has no effect when "
+        "ncomp is supplied manually. Does not restrict the reported error measures."
+    ),
+    "weighted": (
+        "Whether to use the weighted-vote component-choice matrix to resolve "
+        "ncomp from tuned-components. Disable to use the majority-vote matrix. "
+        "Has no effect when ncomp is supplied manually. Performance evaluation "
+        "always reports both voting schemes."
+    ),
+}
+
+plugin.methods.register_function(
+    function=fit_block_splsda,
+    inputs={
+        "tables": Collection[FeatureTable[Unconstrained]],
+        "design_matrix": AssociationMatrix,
+        "tuned_components": PLSComponentSelection,
+        "feature_selection": PLSFeatureSelection,
+    },
+    parameters=fit_block_splsda_parameters,
+    outputs=[("pls_results", PLSFit)],
+    input_descriptions={
+        **component_tuning_input_descriptions,
+        "tables": (
+            "Named feature tables used as DIABLO blocks. The tables and response "
+            "are aligned to shared sample IDs before fitting."
+        ),
+        "tuned_components": "Optional artifact used to determine ncomp.",
+        "feature_selection": "Optional artifact supplying selected keepX values.",
+    },
+    parameter_descriptions=fit_block_splsda_parameter_descriptions,
+    output_descriptions={"pls_results": "Final DIABLO block sPLS-DA output tables."},
+    name="Fit DIABLO block sparse PLS-DA",
+    description=(
+        "Fits a mixOmics block.splsda model, also known as DIABLO, from "
+        "supplied or previously selected components and retained feature counts."
     ),
     citations=[citations["rohart2017mixomics"]],
 )
