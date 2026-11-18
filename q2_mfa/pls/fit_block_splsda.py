@@ -180,37 +180,43 @@ def _fit_block_splsda_visualiser(ctx, pls_results, y):
     Uses per-block and consensus sample scores for plotIndiv()-style plots,
     and feature-component correlations for a plotVar()-style correlation
     scatterplot. All fitted components are selectable in vizard; components
-    one and two are initially shown. Single-component fits use tables.
-
-    Returns:
-        Visualization: A report containing sample and feature views.
+    one and two are initially shown. Single-component fits use boxplots
+    grouped by target class for sample scores and by block for feature
+    correlations. The report also includes the complete fitted tables.
     """
+    boxplot = ctx.get_action("vizard", "boxplot")
     scatterplot = ctx.get_action("vizard", "scatterplot_2d")
     correlation_plot = ctx.get_action("vizard", "scatterplot_correlation")
     tabulate = ctx.get_action("metadata", "tabulate")
+
     fitted = pls_results.view(PLSFitDirFmt)
     block_names = fitted.weights.view(pd.DataFrame)["block"].unique()
-    score_metadata = fitted.scores.view(Metadata)
+    score_table = fitted.scores.view(pd.DataFrame)
     feature_metadata = fitted.feature_component_correlation.view(Metadata)
 
-    axes = [column for column in score_metadata.columns if column.startswith("comp")]
+    axes = [column for column in score_table.columns if column.startswith("comp")]
+    single_component = len(axes) == 1
     target = y.to_series()
-    sample_plots = {}
+    score_plots = {}
     for group, names in (
         ("block", block_names),
         ("method", ("average", "weighted_average")),
     ):
         for name in names:
-            block_literal = name.replace("'", "''")
-            ids = score_metadata.get_ids(where=f"block = '{block_literal}'")
-            scores = (
-                score_metadata.filter_ids(ids).to_dataframe().set_index("sample")[axes]
-            )
-            scores["Target"] = target.reindex(scores.index)
-            metadata = Metadata(scores.rename_axis("sample-id"))
+            plot_scores = score_table.loc[
+                score_table["block"] == name, ["sample", *axes]
+            ].set_index("sample")
+            plot_scores["Target"] = target
+            metadata = Metadata(plot_scores.rename_axis("sample-id"))
             title = f"DIABLO sample scores: {name}"
-            if len(axes) < 2:
-                (plot,) = tabulate(input=metadata)
+            if single_component:
+                (plot,) = boxplot(
+                    metadata=metadata,
+                    distribution_measure=axes[0],
+                    group_by="Target",
+                    box_orientation="vertical",
+                    title=title,
+                )
             else:
                 (plot,) = scatterplot(
                     metadata=metadata,
@@ -219,10 +225,16 @@ def _fit_block_splsda_visualiser(ctx, pls_results, y):
                     color_by="Target",
                     title=title,
                 )
-            sample_plots[f"{group}: {name}"] = plot
+            score_plots[f"{group}: {name}"] = plot
 
-    if len(axes) < 2:
-        (feature_plot,) = tabulate(input=feature_metadata)
+    if single_component:
+        (feature_plot,) = boxplot(
+            metadata=feature_metadata,
+            distribution_measure=axes[0],
+            group_by="block",
+            box_orientation="vertical",
+            title="DIABLO feature-component correlations",
+        )
     else:
         (feature_plot,) = correlation_plot(
             metadata=feature_metadata,
@@ -231,16 +243,41 @@ def _fit_block_splsda_visualiser(ctx, pls_results, y):
             color_by="block",
             title="DIABLO feature-component correlations",
         )
-    samples = ctx.make_report(matryoshka_template, sample_plots)
+
+    scores = ctx.make_report(
+        matryoshka_template,
+        score_plots,
+        descriptions={name: fit_descriptions["scores"] for name in score_plots},
+    )
+    table_labels = {
+        "loadings": "Loadings",
+        "scores": "Scores",
+        "weights": "Block weights",
+        "prop_expl_var": "Proportion of explained variance",
+        "ave": "Average variance explained",
+        "feature_stability": "Feature stability",
+        "auc": "AUC",
+        "error_rate_weighted": "Weighted-vote error rates",
+        "error_rate_majority": "Majority-vote error rates",
+        "feature_component_correlation": "Feature-component correlations",
+        "feature_similarity": "Feature similarities",
+    }
+    tables = {}
+    table_descriptions = {}
+    for name, label in table_labels.items():
+        (tables[label],) = tabulate(input=getattr(fitted, name).view(Metadata))
+        table_descriptions[label] = descriptions[name]
+    table_report = ctx.make_report(
+        matryoshka_template, tables, descriptions=table_descriptions
+    )
     return ctx.make_report(
         matryoshka_template,
-        {"Sample scores": samples, "Feature correlations": feature_plot},
+        {
+            "Sample scores": scores,
+            "Feature correlations": feature_plot,
+            "Tables": table_report,
+        },
         descriptions={
-            "Sample scores": (
-                fit_descriptions["scores"]
-                + " Colors show the target classes. For one-component fits, "
-                "coordinates are shown as tables."
-            ),
             "Feature correlations": fit_descriptions["feature_component_correlation"],
         },
     )

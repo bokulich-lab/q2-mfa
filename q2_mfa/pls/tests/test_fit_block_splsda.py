@@ -6,22 +6,27 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import json
+from importlib.resources import files
 from unittest.mock import MagicMock, Mock
 
 import pandas as pd
 from q2_types.tabular import TableJSONLFileFormat
-from rachis import Artifact
+from rachis import Artifact, Metadata
 from rachis.plugin import CaptureHolder, Collection, Str
 from rachis.plugin.testing import TestPluginBase
 from rpy2.robjects import r
 
-from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt, PLSFitDirFmt
+from q2_mfa.pls import (
+    PLSFeatureSelection,
+    PLSFeatureSelectionDirFmt,
+    PLSFit,
+    PLSFitDirFmt,
+)
 from q2_mfa.pls.examples import nutrimouse_metadata_factory, nutrimouse_tables_factory
 from q2_mfa.pls.fit_block_splsda import (
     _consensus_variates,
     _feature_component_correlations,
     _feature_similarity_to_dataframe,
-    _fit_block_splsda_visualiser,
     _keepx_from_feature_selection,
     _r_auc_to_dataframe,
     _r_ave_to_dataframe,
@@ -76,79 +81,55 @@ class TestFitBlockSPLSDAPipeline(TestPluginBase):
         self.assertEqual(fit.call_args.kwargs["seed"], 42)
         visualise.assert_called_once_with(pls_results=self.fitted, y=self.response)
 
-    def test_visualiser_passes_fitted_coordinates(self):
-        """Checks real fitted coordinates and target labels sent to vizard."""
-        ctx = MagicMock()
-        scatterplot = MagicMock(return_value=(Mock(),))
-        correlation_plot = MagicMock(return_value=(Mock(),))
-        tabulate = MagicMock(return_value=(Mock(),))
-        ctx.get_action.side_effect = [scatterplot, correlation_plot, tabulate]
-        _fit_block_splsda_visualiser(ctx, self.fitted, self.response)
-        fitted = self.fitted.view(PLSFitDirFmt)
-        scores = fitted.scores.view(pd.DataFrame).set_index("sample")
-        self.assertEqual(scatterplot.call_count, 4)
-        for call, block in zip(
-            scatterplot.call_args_list,
-            ("gene", "lipid", "average", "weighted_average"),
-        ):
-            expected = scores.loc[scores["block"] == block, ["comp1", "comp2"]]
-            expected["Target"] = self.response.to_series().reindex(expected.index)
-            pd.testing.assert_frame_equal(
-                call.kwargs["metadata"].to_dataframe(),
-                expected.rename_axis("sample-id"),
-                check_index_type=False,
+
+class TestFitBlockSPLSDAVisualiser(TestPluginBase):
+    package = "q2_mfa.pls.tests"
+
+    def setUp(self):
+        super().setUp()
+
+        fixture = files("q2_mfa.pls.types.tests") / "data" / "pls-fit"
+        self.fitted = Artifact.import_data(
+            PLSFit,
+            str(fixture),
+            view_type=PLSFitDirFmt,
+        )
+        self.target = Metadata(
+            pd.DataFrame(
+                {"condition": ["Gastrectomy", "Gastrectomy", "Healthy", "Healthy"]},
+                index=pd.Index(["1", "2", "3", "4"], name="sample-id"),
             )
-            self.assertEqual(call.kwargs["x_measure"], "comp1")
-            self.assertEqual(call.kwargs["y_measure"], "comp2")
-            self.assertEqual(call.kwargs["color_by"], "Target")
-        expected = fitted.feature_component_correlation.view(pd.DataFrame)
-        observed = correlation_plot.call_args.kwargs["metadata"].to_dataframe()
-        pd.testing.assert_frame_equal(
-            observed,
-            expected.set_index("id"),
-            check_dtype=False,
-            check_index_type=False,
-        )
-        self.assertEqual(correlation_plot.call_args.kwargs["x_measure"], "comp1")
-        self.assertEqual(correlation_plot.call_args.kwargs["y_measure"], "comp2")
-        self.assertEqual(correlation_plot.call_args.kwargs["color_by"], "block")
-        tabulate.assert_not_called()
+        ).get_column("condition")
 
-    def test_visualiser_single_component_uses_tables(self):
-        """Tabulates scores when the fit has one component."""
-        (artifact,) = self.plugin.methods["_fit_block_splsda"](
-            tables=self.tables,
-            y=self.response,
-            design_weight=0.9,
-            ncomp=1,
-            keepx={"gene": "5", "lipid": "9"},
-            folds=2,
-            nrepeat=3,
-            seed=42,
-        )
-        ctx = MagicMock()
-        scatterplot = MagicMock()
-        correlation_plot = MagicMock()
-        tabulate = MagicMock(return_value=(Mock(),))
-        ctx.get_action.side_effect = [scatterplot, correlation_plot, tabulate]
-        _fit_block_splsda_visualiser(ctx, artifact, self.response)
-        self.assertEqual(tabulate.call_count, 5)
-        for call in tabulate.call_args_list:
-            self.assertIn("comp1", call.kwargs["input"].columns)
-            self.assertNotIn("comp2", call.kwargs["input"].columns)
-        scatterplot.assert_not_called()
-        correlation_plot.assert_not_called()
-
-    def test_visualiser_renders_report(self):
-        """Renders the real vizard scatterplots into a nested report."""
+    def test_visualiser_single_component(self):
         (report,) = self.plugin.pipelines["_fit_block_splsda_visualiser"](
-            pls_results=self.fitted, y=self.response
+            pls_results=self.fitted, y=self.target
         )
-        with (report._archiver.data_dir / "subfigures" / "index.json").open() as fh:
+
+        data_dir = report._archiver.data_dir
+        with (data_dir / "subfigures" / "index.json").open() as fh:
             index = json.load(fh)
-        self.assertEqual(list(index), ["Sample scores", "Feature correlations"])
-        self.assertEqual(len(index["Sample scores"]["children"]), 4)
-        self.assertTrue((report._archiver.data_dir / "index.html").is_file())
+        self.assertEqual(
+            list(index), ["Sample scores", "Feature correlations", "Tables"]
+        )
+
+        score_plots = index["Sample scores"]["children"]
+        self.assertEqual(
+            list(score_plots),
+            [
+                "block: metabolomics",
+                "block: microbiome",
+                "method: average",
+                "method: weighted_average",
+            ],
+        )
+        plots = {**score_plots, "Feature correlations": index["Feature correlations"]}
+        for name, entry in plots.items():
+            with self.subTest(plot=name):
+                html = (data_dir / entry["index"]).read_text()
+                self.assertIn('"name": "percentiles_table"', html)
+
+        self.assertEqual(len(index["Tables"]["children"]), 11)
 
 
 class TestFitBlockSPLSDA(TestPluginBase):

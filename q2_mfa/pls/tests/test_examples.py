@@ -200,7 +200,9 @@ class TestUsageExamples(TestPluginBase):
         report = outputs["fit_nutrimouse_plots"].execute()
         with (report._archiver.data_dir / "subfigures" / "index.json").open() as fh:
             report_index = json.load(fh)
-        self.assertEqual(list(report_index), ["Sample scores", "Feature correlations"])
+        self.assertEqual(
+            list(report_index), ["Sample scores", "Feature correlations", "Tables"]
+        )
         self.assertEqual(
             list(report_index["Sample scores"]["children"]),
             [
