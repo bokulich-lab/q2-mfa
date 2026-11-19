@@ -182,6 +182,12 @@ class TestUsageExamples(TestPluginBase):
                 ["Weighted vote", "Majority vote"],
             )
 
+        for vote in ("Weighted vote", "Majority vote"):
+            self.assertEqual(
+                list(report_index["Error rates"]["children"][vote]["children"]),
+                ["Plot", "Table"],
+            )
+
     def test_select_features_block_splsda_nutrimouse(self):
         use = ExecutionUsage()
         action = self.plugin.pipelines["select_features_block_splsda"]
