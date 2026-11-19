@@ -19,6 +19,7 @@ from rachis.sdk.usage import ExecutionUsage
 
 import q2_mfa
 from q2_mfa.pls import PLSComponentSelectionDirFmt, PLSFeatureSelectionDirFmt
+from q2_mfa.pls.descriptions import jsonl_descriptions
 from q2_mfa.plugin_setup import plugin
 
 
@@ -121,6 +122,11 @@ class TestUsageExamples(TestPluginBase):
             with self.subTest(vote=vote):
                 assert_frame_equal(rates, expected_rates, rtol=1e-8, atol=1e-10)
                 assert_frame_equal(choices, expected_choices, check_exact=True)
+                for table_name in ("error_rate", "choice_matrix"):
+                    name = f"{table_name}_{vote}"
+                    with (Path(data.path) / f"{name}.jsonl").open() as handle:
+                        header = json.loads(next(handle))
+                    self.assertEqual(header["description"], jsonl_descriptions[name])
             printed_choices = expected_choices.astype("Int64").to_string()
             expected_stdout.append(
                 f"{vote.capitalize()}Vote component-choice matrix:\n\n"
