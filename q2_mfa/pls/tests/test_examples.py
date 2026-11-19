@@ -143,6 +143,10 @@ class TestUsageExamples(TestPluginBase):
                 list(report_index["Error rates"]["children"][vote]["children"]),
                 ["Plot", "Table"],
             )
+            tabs = report_index["Error rates"]["children"][vote]["children"]
+            for tab in ("Plot", "Table"):
+                self.assertTrue(tabs[tab]["description"])
+                self.assertIn(vote.split()[0], tabs[tab]["description"])
 
     def test_select_features_block_splsda_nutrimouse(self):
         use = ExecutionUsage()
