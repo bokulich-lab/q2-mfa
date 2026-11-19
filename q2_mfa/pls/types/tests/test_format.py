@@ -48,3 +48,16 @@ class TestPLSFeatureSelectionDirFmt(TestPluginBase):
 
     def test_complete_fixture_validates(self):
         PLSFeatureSelectionDirFmt(self.fixture_dir, mode="r").validate()
+
+
+class TestSingleTablePLSComponentSelectionDirFmt(TestPluginBase):
+    package = "q2_mfa.pls.types.tests"
+
+    def setUp(self):
+        """Sets up the single-table component-tuning fixture."""
+        super().setUp()
+        self.fixture_dir = Path(self.get_data_path("pls-tune-components-single-table"))
+
+    def test_complete_fixture_validates(self):
+        """Validates the single-table error rates and component choices."""
+        PLSComponentSelectionDirFmt(self.fixture_dir, mode="r").validate()

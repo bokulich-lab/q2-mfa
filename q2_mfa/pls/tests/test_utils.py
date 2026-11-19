@@ -65,6 +65,22 @@ class TestPLSUtils(TestPluginBase):
             self.assertEqual(table.index.tolist(), ["s2", "s3"])
         self.assertEqual(target.index.tolist(), ["s2", "s3"])
 
+    def test_align_samples_accepts_one_table_in_single_table_mode(self):
+        """Aligns one predictor table and response using the predictor order."""
+        response = self.response.to_series()
+        table = self.blocks["block-a"].loc[["s3", "s2"]]
+        with self.assertWarns(RachisWarning) as caught:
+            tables, target = utils._align_samples(
+                {"block-a": table}, response, is_block=False
+            )
+        self.assertEqual(
+            str(caught.warning),
+            "Dropping samples from block 'y' that are not shared across all "
+            "blocks:\ns5",
+        )
+        pd.testing.assert_frame_equal(tables["block-a"], table)
+        pd.testing.assert_series_equal(target, response.loc[table.index])
+
     def test_align_samples_rejects_fewer_than_two_tables(self):
         with self.assertRaisesRegex(
             ValueError, "At least two named feature tables are required."

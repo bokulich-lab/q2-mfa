@@ -11,24 +11,24 @@ from q2_types.tabular import TableJSONLFileFormat
 
 
 class PLSComponentSelectionDirFmt(model.DirectoryFormat):
-    """Stores DIABLO component-selection diagnostics."""
+    error_rate = model.FileCollection(
+        r"error_rate(?:_(?:weighted|majority))?\.jsonl$",
+        format=TableJSONLFileFormat,
+    )
+    choice_matrix = model.FileCollection(
+        r"choice_matrix(?:_(?:weighted|majority))?\.jsonl$",
+        format=TableJSONLFileFormat,
+    )
 
-    error_rate_weighted = model.File(
-        "error_rate_weighted.jsonl",
-        format=TableJSONLFileFormat,
-    )
-    error_rate_majority = model.File(
-        "error_rate_majority.jsonl",
-        format=TableJSONLFileFormat,
-    )
-    choice_matrix_weighted = model.File(
-        "choice_matrix_weighted.jsonl",
-        format=TableJSONLFileFormat,
-    )
-    choice_matrix_majority = model.File(
-        "choice_matrix_majority.jsonl",
-        format=TableJSONLFileFormat,
-    )
+    @error_rate.set_path_maker
+    def error_rate_path_maker(self, vote=None):
+        suffix = f"_{vote}" if vote else ""
+        return f"error_rate{suffix}.jsonl"
+
+    @choice_matrix.set_path_maker
+    def choice_matrix_path_maker(self, vote=None):
+        suffix = f"_{vote}" if vote else ""
+        return f"choice_matrix{suffix}.jsonl"
 
 
 AssociationMatrixDirFmt = model.SingleFileDirectoryFormat(
