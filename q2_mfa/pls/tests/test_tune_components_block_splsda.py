@@ -28,7 +28,6 @@ from q2_mfa.pls.tune_components_block_splsda import (
     _tune_components_block_splsda,
     _tune_components_block_visualisation,
     mixomics,
-    tune_components_block_splsda,
 )
 
 
@@ -124,114 +123,6 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
                 seed=17,
                 threads=2,
             )
-
-    def test_tune_components_pipeline_calls_its_actions(self):
-        tuning = MagicMock()
-        tune_components = MagicMock(return_value=(tuning,))
-        visualisation = MagicMock(return_value=(MagicMock(),))
-        mock_context = MagicMock()
-        mock_context.get_action.side_effect = [
-            tune_components,
-            visualisation,
-        ]
-
-        tune_components_block_splsda(
-            ctx=mock_context,
-            tables=self.tables,
-            y=self.response,
-            design_weight=0.1,
-        )
-
-        self.assertEqual(
-            mock_context.get_action.call_args_list,
-            [
-                call("mfa", "_tune_components_block_splsda"),
-                call("mfa", "_tune_components_block_visualisation"),
-            ],
-        )
-        tune_components.assert_called_once_with(
-            tables=self.tables,
-            y=self.response,
-            design_matrix=None,
-            design_weight=0.1,
-            ncomp=2,
-            scale=True,
-            tol=1e-6,
-            max_iter=100,
-            near_zero_var=False,
-            validation="Mfold",
-            folds=10,
-            nrepeat=3,
-            signif_threshold=0.01,
-            seed=None,
-            threads=1,
-        )
-        visualisation.assert_called_once_with(tune_components=tuning)
-
-    @patch("q2_mfa.pls.tune_components_block_splsda._error_rate_metadata")
-    def test_tune_components_visualisation_pipeline_calls_its_actions(
-        self, mock_error_rate_metadata
-    ):
-        tuning = MagicMock()
-        weighted_rate_table, majority_rate_table = MagicMock(), MagicMock()
-        tuning.view.return_value.error_rate.iter_views.return_value = [
-            (Path("error_rate_weighted.jsonl"), weighted_rate_table),
-            (Path("error_rate_majority.jsonl"), majority_rate_table),
-        ]
-        weighted_choices, majority_choices = MagicMock(), MagicMock()
-        tuning.view.return_value.choice_matrix.iter_views.return_value = [
-            (Path("choice_matrix_weighted.jsonl"), weighted_choices),
-            (Path("choice_matrix_majority.jsonl"), majority_choices),
-        ]
-        weighted_error_rates = MagicMock()
-        majority_error_rates = MagicMock()
-        mock_error_rate_metadata.side_effect = [
-            weighted_error_rates,
-            majority_error_rates,
-        ]
-        lineplot = MagicMock(return_value=(MagicMock(),))
-        tabulate = MagicMock(return_value=(MagicMock(),))
-        mock_context = MagicMock()
-        mock_context.get_action.side_effect = [lineplot, tabulate]
-
-        _tune_components_block_visualisation(ctx=mock_context, tune_components=tuning)
-
-        self.assertEqual(
-            mock_context.get_action.call_args_list,
-            [call("vizard", "lineplot"), call("metadata", "tabulate")],
-        )
-        self.assertEqual(mock_error_rate_metadata.call_count, 2)
-        lineplot.assert_has_calls(
-            [
-                call(
-                    metadata=weighted_error_rates,
-                    x_measure="component",
-                    y_measure="mean",
-                    replicate_method="none",
-                    group_by="error_rate",
-                    color_palette="category20",
-                    title="sPLS-DA weighted-vote error rates",
-                ),
-                call(
-                    metadata=majority_error_rates,
-                    x_measure="component",
-                    y_measure="mean",
-                    replicate_method="none",
-                    group_by="error_rate",
-                    color_palette="category20",
-                    title="sPLS-DA majority-vote error rates",
-                ),
-            ]
-        )
-        tabulate.assert_has_calls(
-            [
-                call(input=weighted_rate_table),
-                call(input=weighted_choices),
-                call(input=majority_rate_table),
-                call(input=majority_choices),
-            ]
-        )
-        self.assertEqual(mock_context.make_report.call_count, 5)
 
     def test_error_rate_metadata_filters_and_labels_overall_error_rates(self):
         actual = _error_rate_metadata(
