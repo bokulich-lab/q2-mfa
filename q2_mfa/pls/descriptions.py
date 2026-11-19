@@ -67,6 +67,24 @@ model trained on components 1 and 2.*
 For more information, consult the mixOmics documentation."""
 
 report_descriptions = {
+    "error_rate": (
+        "Inspect how cross-validated error changes as components are added, "
+        "then compare the error criteria and prediction distances."
+        + "\n\n"
+        + error_rate_criteria_description
+        + "\n\n"
+        + prediction_distance_description
+    ),
+    "choice_matrix": (
+        "Component choices are reported for each error criterion and prediction "
+        "distance. With at least three cross-validation repeats, mixOmics uses "
+        "one-sided t-tests at **signif-threshold** to choose a component count. "
+        "With fewer repeats, including leave-one-out validation, it uses the "
+        "minimum observed error. The rows **overall** and **BER** correspond "
+        "to overall and balanced error rates."
+        + "\n\n"
+        + prediction_distance_description
+    ),
     "error_rate_weighted": (
         "### Weighted-vote predictions\n\n"
         + curve_usage_description
