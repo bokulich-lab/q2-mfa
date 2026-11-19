@@ -45,6 +45,7 @@ from q2_mfa.pls import (
 from q2_mfa.pls.examples import (
     select_features_block_splsda_nutrimouse,
     tune_components_block_splsda_nutrimouse,
+    tune_components_splsda_nutrimouse,
 )
 from q2_mfa.preprocessing import transform_clr
 
@@ -579,6 +580,7 @@ single_table_metrics_description = (
 )
 plugin.methods.register_function(
     function=tune_components_splsda,
+    examples={"nutrimouse": tune_components_splsda_nutrimouse},
     outputs=[("tune_components", PLSComponentSelection)],
     output_descriptions={"tune_components": single_table_metrics_description},
     **single_table_tuning_registration,

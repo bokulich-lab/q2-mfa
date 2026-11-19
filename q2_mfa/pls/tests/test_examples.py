@@ -20,6 +20,7 @@ from rachis.sdk.usage import ExecutionUsage
 import q2_mfa
 from q2_mfa.pls import PLSComponentSelectionDirFmt, PLSFeatureSelectionDirFmt
 from q2_mfa.pls.descriptions import jsonl_descriptions
+from q2_mfa.pls.utils import _ncomp_from_tuned_ncomp
 from q2_mfa.plugin_setup import plugin
 
 
@@ -98,6 +99,49 @@ class TestUsageExamples(TestPluginBase):
                 cls.expected_component_tuning[vote, table] = (
                     expected.astype(float) if table == "choices" else expected
                 )
+
+        cls.expected_lipid_error_rates = pd.read_csv(
+            instance.get_data_path("tune-components/nutrimouse-lipid-error-rates.tsv"),
+            sep="\t",
+            index_col="id",
+            dtype={"id": str, "component": float},
+        )
+        cls.expected_lipid_choices = pd.read_csv(
+            instance.get_data_path("tune-components/nutrimouse-lipid-choices.tsv"),
+            sep="\t",
+            index_col="id",
+        ).astype(float)
+
+    def test_tune_components_splsda_nutrimouse(self):
+        """Checks the lipid-only Nutrimouse diagnostics through the public method."""
+        use = ExecutionUsage()
+        action = self.plugin.methods["tune_components_splsda"]
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            action.examples["nutrimouse"](use)
+        outputs = use.render()
+        tuning = outputs["tuned_components_nutrimouse_lipids"].execute()
+        data = tuning.view(PLSComponentSelectionDirFmt)
+
+        rates = dict(data.error_rate.iter_views(Metadata))[
+            Path("error_rate.jsonl")
+        ].to_dataframe()
+        choices = dict(data.choice_matrix.iter_views(Metadata))[
+            Path("choice_matrix.jsonl")
+        ].to_dataframe()
+        assert_frame_equal(
+            rates, self.expected_lipid_error_rates, rtol=1e-8, atol=1e-10
+        )
+        assert_frame_equal(choices, self.expected_lipid_choices, check_exact=True)
+        for weighted in (True, False):
+            self.assertEqual(
+                _ncomp_from_tuned_ncomp(data, weighted, "BER", "max.dist"),
+                int(self.expected_lipid_choices.loc["BER", "max.dist"]),
+            )
+        printed_choices = self.expected_lipid_choices.astype("Int64").to_string()
+        self.assertEqual(
+            stdout.getvalue(), f"Component-choice matrix:\n\n{printed_choices}\n\n"
+        )
 
     def test_tune_components_block_splsda_nutrimouse(self):
         use = ExecutionUsage()

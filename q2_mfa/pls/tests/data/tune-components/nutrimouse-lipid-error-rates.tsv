@@ -1,0 +1,13 @@
+id	distance	class	component	mean	sd
+1	max.dist	Overall.ER	1	0.633333333333333	0.0288675134594813
+2	max.dist	Overall.ER	2	0.4	0
+3	centroids.dist	Overall.ER	1	0.375	0.0433012701892219
+4	centroids.dist	Overall.ER	2	0.0416666666666667	0.0288675134594813
+5	mahalanobis.dist	Overall.ER	1	0.375	0.0433012701892219
+6	mahalanobis.dist	Overall.ER	2	0.0416666666666667	0.0288675134594813
+7	max.dist	Overall.BER	1	0.633333333333333	0.0288675134594813
+8	max.dist	Overall.BER	2	0.4	0
+9	centroids.dist	Overall.BER	1	0.375	0.0433012701892219
+10	centroids.dist	Overall.BER	2	0.0416666666666667	0.0288675134594813
+11	mahalanobis.dist	Overall.BER	1	0.375	0.0433012701892219
+12	mahalanobis.dist	Overall.BER	2	0.0416666666666667	0.0288675134594813
