@@ -391,21 +391,19 @@ plugin.pipelines.register_function(
     parameters={},
     outputs=[("visualization", Visualization)],
     input_descriptions={
-        "tune_components": (
-            "sPLS-DA weighted- and majority-vote component-tuning metrics."
-        )
+        "tune_components": ("Single-table or block sPLS-DA component-tuning metrics.")
     },
     parameter_descriptions={},
     output_descriptions={
         "visualization": (
-            "Report containing weighted and majority-vote error-rate plots "
-            "and component-choice matrices."
+            "Report containing error-rate plots and component-choice matrices, "
+            "grouped by voting scheme for block results."
         ),
     },
-    name="Visualize block sPLS-DA (DIABLO) component tuning",
+    name="Visualize sPLS-DA component tuning",
     description=(
-        "Creates a report of weighted and majority-vote component-tuning "
-        "diagnostics for block sPLS-DA (DIABLO)."
+        "Creates a report of component-tuning diagnostics for single-table "
+        "or block sPLS-DA (DIABLO)."
     ),
     citations=[
         citations["rohart2017mixomics"],

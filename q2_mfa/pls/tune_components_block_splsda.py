@@ -159,12 +159,11 @@ def tune_components_block_splsda(
 
 def _tune_components_block_visualisation(ctx, tune_components):
     """
-    Creates diagnostic visualizations for block sPLS-DA component tuning.
+    Creates diagnostic visualizations for sPLS-DA component tuning.
 
-    Plots overall weighted- and majority-vote error rates, tabulates both
-    component-choice matrices, and combines the resulting visualizations into
-    a report with Markdown guidance describing each diagnostic and the
-    significance-based component-selection rule.
+    Plots overall error rates and tabulates component choices for single-table
+    or block results. Block results are grouped by voting scheme. The report
+    includes guidance describing the diagnostics and component-selection rule.
 
     Args:
         ctx (Context): Pipeline execution context used to retrieve actions and
@@ -187,63 +186,56 @@ def _tune_components_block_visualisation(ctx, tune_components):
         str(path): metadata
         for path, metadata in tuning_data.choice_matrix.iter_views(Metadata)
     }
-    weighted_error_rates = _error_rate_metadata(
-        error_rates["error_rate_weighted.jsonl"]
-    )
-    majority_error_rates = _error_rate_metadata(
-        error_rates["error_rate_majority.jsonl"]
-    )
-    (weighted_error_rate_plot,) = lineplot(
-        metadata=weighted_error_rates,
-        x_measure="component",
-        y_measure="mean",
-        replicate_method="none",
-        group_by="error_rate",
-        color_palette="category20",
-        title="sPLS-DA weighted-vote error rates",
-    )
-    (majority_error_rate_plot,) = lineplot(
-        metadata=majority_error_rates,
-        x_measure="component",
-        y_measure="mean",
-        replicate_method="none",
-        group_by="error_rate",
-        color_palette="category20",
-        title="sPLS-DA majority-vote error rates",
-    )
-    (weighted_choice_matrix,) = tabulate(input=choices["choice_matrix_weighted.jsonl"])
-    (majority_choice_matrix,) = tabulate(input=choices["choice_matrix_majority.jsonl"])
+    plots = {}
+    tables = {}
+    error_descriptions = {}
+    choice_descriptions = {}
+    for suffix, label, title in (
+        ("", "Single table", "sPLS-DA error rates"),
+        ("_weighted", "Weighted vote", "sPLS-DA weighted-vote error rates"),
+        ("_majority", "Majority vote", "sPLS-DA majority-vote error rates"),
+    ):
+        error_key = f"error_rate{suffix}"
+        choice_key = f"choice_matrix{suffix}"
+        if f"{error_key}.jsonl" not in error_rates:
+            continue
+        (plots[label],) = lineplot(
+            metadata=_error_rate_metadata(error_rates[f"{error_key}.jsonl"]),
+            x_measure="component",
+            y_measure="mean",
+            replicate_method="none",
+            group_by="error_rate",
+            color_palette="category20",
+            title=title,
+        )
+        (tables[label],) = tabulate(input=choices[f"{choice_key}.jsonl"])
+        error_descriptions[label] = report_descriptions[error_key]
+        choice_descriptions[label] = report_descriptions[choice_key]
+
+    if len(plots) == 1:
+        label = next(iter(plots))
+        return ctx.make_report(
+            matryoshka_template,
+            {"Error rates": plots[label], "Component choices": tables[label]},
+            descriptions={
+                "Error rates": error_descriptions[label],
+                "Component choices": choice_descriptions[label],
+            },
+        )
 
     error_rate_report = ctx.make_report(
-        matryoshka_template,
-        {
-            "Weighted vote": weighted_error_rate_plot,
-            "Majority vote": majority_error_rate_plot,
-        },
-        descriptions={
-            "Weighted vote": report_descriptions["error_rate_weighted"],
-            "Majority vote": report_descriptions["error_rate_majority"],
-        },
+        matryoshka_template, plots, descriptions=error_descriptions
     )
     choice_matrix_report = ctx.make_report(
-        matryoshka_template,
-        {
-            "Weighted vote": weighted_choice_matrix,
-            "Majority vote": majority_choice_matrix,
-        },
-        descriptions={
-            "Weighted vote": report_descriptions["choice_matrix_weighted"],
-            "Majority vote": report_descriptions["choice_matrix_majority"],
-        },
+        matryoshka_template, tables, descriptions=choice_descriptions
     )
-    report = ctx.make_report(
+    return ctx.make_report(
         matryoshka_template,
         {
             "Error rates": error_rate_report,
             "Component choices": choice_matrix_report,
         },
     )
-    return report
 
 
 def _error_rate_metadata(error_rates: Metadata) -> Metadata:
