@@ -19,7 +19,7 @@ from rpy2.robjects import r
 from rpy2.robjects.packages import importr
 
 from q2_mfa.pls import PLSComponentSelection, PLSComponentSelectionDirFmt
-from q2_mfa.pls.descriptions import jsonl_descriptions
+from q2_mfa.pls.descriptions import jsonl_descriptions, report_descriptions
 from q2_mfa.pls.tune_components_block_splsda import (
     _error_rate_metadata,
     _print_component_choice,
@@ -439,8 +439,14 @@ class TestComponentTuningVisualisation(TestPluginBase):
                     assert_frame_equal(choices, expected)
                 expected_report_count = 2 if layout == "single" else 5
                 self.assertEqual(context.make_report.call_count, expected_report_count)
-                for report_call in context.make_report.call_args_list[: len(variants)]:
+                for index, (suffix, _) in enumerate(variants):
+                    report_call = context.make_report.call_args_list[index]
                     self.assertEqual(list(report_call.args[1]), ["Plot", "Table"])
+                    description = report_descriptions[f"error_rate{suffix}"]
+                    self.assertEqual(
+                        report_call.kwargs["descriptions"],
+                        {"Plot": description, "Table": description},
+                    )
                 sections = context.make_report.call_args.args[1]
                 self.assertEqual(list(sections), ["Error rates", "Component choices"])
                 if layout == "single":

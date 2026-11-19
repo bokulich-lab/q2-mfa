@@ -189,7 +189,6 @@ def _tune_components_block_visualisation(ctx, tune_components):
     }
     error_reports = {}
     tables = {}
-    error_descriptions = {}
     choice_descriptions = {}
     for suffix, label, title in (
         ("", "Single table", "sPLS-DA error rates"),
@@ -213,14 +212,12 @@ def _tune_components_block_visualisation(ctx, tune_components):
         error_reports[label] = ctx.make_report(
             matryoshka_template,
             {"Plot": plot, "Table": error_rate_table},
+            descriptions={
+                "Plot": report_descriptions[error_key],
+                "Table": report_descriptions[error_key],
+            },
         )
         (tables[label],) = tabulate(input=choices[f"{choice_key}.jsonl"])
-        error_descriptions[label] = (
-            report_descriptions[error_key]
-            + "\n\nThe table contains all stored error rates, including "
-            "per-class rates when available, with their prediction distances, "
-            "component counts, means, and standard deviations."
-        )
         choice_descriptions[label] = report_descriptions[choice_key]
 
     if len(error_reports) == 1:
@@ -229,14 +226,11 @@ def _tune_components_block_visualisation(ctx, tune_components):
             matryoshka_template,
             {"Error rates": error_reports[label], "Component choices": tables[label]},
             descriptions={
-                "Error rates": error_descriptions[label],
                 "Component choices": choice_descriptions[label],
             },
         )
 
-    error_rate_report = ctx.make_report(
-        matryoshka_template, error_reports, descriptions=error_descriptions
-    )
+    error_rate_report = ctx.make_report(matryoshka_template, error_reports)
     choice_matrix_report = ctx.make_report(
         matryoshka_template, tables, descriptions=choice_descriptions
     )
