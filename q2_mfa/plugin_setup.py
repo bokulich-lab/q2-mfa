@@ -40,6 +40,7 @@ from q2_mfa.pls import (
     _tune_components_block_visualisation,
     select_features_block_splsda,
     tune_components_block_splsda,
+    tune_components_splsda,
 )
 from q2_mfa.pls.examples import (
     select_features_block_splsda_nutrimouse,
@@ -536,6 +537,51 @@ plugin.pipelines.register_function(
         "the mixOmics documentation: https://mixomics.org/methods/diablo/"
     ),
     citations=[citations["rohart2017mixomics"]],
+)
+
+single_table_tuning_parameters = {
+    name: spec
+    for name, spec in component_tuning_parameters.items()
+    if name != "design_weight"
+}
+single_table_tuning_parameter_descriptions = {
+    name: component_tuning_parameter_descriptions[name]
+    for name in single_table_tuning_parameters
+}
+single_table_tuning_parameter_descriptions["scale"] = (
+    "Whether to standardize each feature to zero mean and unit variance before "
+    "fitting."
+)
+single_table_tuning_parameter_descriptions["near_zero_var"] = (
+    "Whether to remove predictors with zero or near-zero variance before fitting."
+)
+single_table_tuning_parameter_descriptions["signif_threshold"] = (
+    "Significance level for one-sided tests comparing cross-validated error "
+    "rates across component counts."
+)
+single_table_tuning_registration = {
+    "inputs": {"table": FeatureTable[Unconstrained]},
+    "parameters": single_table_tuning_parameters,
+    "input_descriptions": {
+        "table": "Predictor table restricted to sample IDs shared with the response."
+    },
+    "parameter_descriptions": single_table_tuning_parameter_descriptions,
+    "name": "Tune single-table sPLS-DA components",
+    "description": (
+        "Fits a dense PLS-DA model with mixOmics and cross-validates its "
+        "component counts using three prediction distances. Reports overall and "
+        "balanced error rates and the recommended component counts."
+    ),
+    "citations": [citations["rohart2017mixomics"]],
+}
+single_table_metrics_description = (
+    "Cross-validated single-table error rates and recommended component counts."
+)
+plugin.methods.register_function(
+    function=tune_components_splsda,
+    outputs=[("tune_components", PLSComponentSelection)],
+    output_descriptions={"tune_components": single_table_metrics_description},
+    **single_table_tuning_registration,
 )
 
 plugin.register_formats(

@@ -15,6 +15,7 @@ from .tune_components_block_splsda import (
     _tune_components_block_visualisation,
     tune_components_block_splsda,
 )
+from .tune_components_splsda import tune_components_splsda
 from .types import (
     AssociationMatrix,
     AssociationMatrixDirFmt,
@@ -25,6 +26,7 @@ from .types import (
 )
 
 __all__ = [
+    "tune_components_splsda",
     "PLSFeatureSelection",
     "PLSFeatureSelectionDirFmt",
     "_select_features_block_splsda",
