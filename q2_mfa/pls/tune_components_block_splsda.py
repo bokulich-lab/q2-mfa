@@ -161,9 +161,10 @@ def _tune_components_block_visualisation(ctx, tune_components):
     """
     Creates diagnostic visualizations for sPLS-DA component tuning.
 
-    Plots overall error rates and tabulates component choices for single-table
-    or block results. Block results are grouped by voting scheme. The report
-    includes guidance describing the diagnostics and component-selection rule.
+    Plots overall error rates and tabulates all stored error rates and
+    component choices for single-table or block results. Block results are
+    grouped by voting scheme. The report includes guidance describing the
+    diagnostics and component-selection rule.
 
     Args:
         ctx (Context): Pipeline execution context used to retrieve actions and
@@ -186,7 +187,7 @@ def _tune_components_block_visualisation(ctx, tune_components):
         str(path): metadata
         for path, metadata in tuning_data.choice_matrix.iter_views(Metadata)
     }
-    plots = {}
+    error_reports = {}
     tables = {}
     error_descriptions = {}
     choice_descriptions = {}
@@ -199,7 +200,7 @@ def _tune_components_block_visualisation(ctx, tune_components):
         choice_key = f"choice_matrix{suffix}"
         if f"{error_key}.jsonl" not in error_rates:
             continue
-        (plots[label],) = lineplot(
+        (plot,) = lineplot(
             metadata=_error_rate_metadata(error_rates[f"{error_key}.jsonl"]),
             x_measure="component",
             y_measure="mean",
@@ -208,15 +209,25 @@ def _tune_components_block_visualisation(ctx, tune_components):
             color_palette="category20",
             title=title,
         )
+        (error_rate_table,) = tabulate(input=error_rates[f"{error_key}.jsonl"])
+        error_reports[label] = ctx.make_report(
+            matryoshka_template,
+            {"Plot": plot, "Table": error_rate_table},
+        )
         (tables[label],) = tabulate(input=choices[f"{choice_key}.jsonl"])
-        error_descriptions[label] = report_descriptions[error_key]
+        error_descriptions[label] = (
+            report_descriptions[error_key]
+            + "\n\nThe table contains all stored error rates, including "
+            "per-class rates when available, with their prediction distances, "
+            "component counts, means, and standard deviations."
+        )
         choice_descriptions[label] = report_descriptions[choice_key]
 
-    if len(plots) == 1:
-        label = next(iter(plots))
+    if len(error_reports) == 1:
+        label = next(iter(error_reports))
         return ctx.make_report(
             matryoshka_template,
-            {"Error rates": plots[label], "Component choices": tables[label]},
+            {"Error rates": error_reports[label], "Component choices": tables[label]},
             descriptions={
                 "Error rates": error_descriptions[label],
                 "Component choices": choice_descriptions[label],
@@ -224,7 +235,7 @@ def _tune_components_block_visualisation(ctx, tune_components):
         )
 
     error_rate_report = ctx.make_report(
-        matryoshka_template, plots, descriptions=error_descriptions
+        matryoshka_template, error_reports, descriptions=error_descriptions
     )
     choice_matrix_report = ctx.make_report(
         matryoshka_template, tables, descriptions=choice_descriptions

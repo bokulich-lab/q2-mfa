@@ -173,9 +173,10 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         self, mock_error_rate_metadata
     ):
         tuning = MagicMock()
+        weighted_rate_table, majority_rate_table = MagicMock(), MagicMock()
         tuning.view.return_value.error_rate.iter_views.return_value = [
-            (Path("error_rate_weighted.jsonl"), MagicMock()),
-            (Path("error_rate_majority.jsonl"), MagicMock()),
+            (Path("error_rate_weighted.jsonl"), weighted_rate_table),
+            (Path("error_rate_majority.jsonl"), majority_rate_table),
         ]
         weighted_choices, majority_choices = MagicMock(), MagicMock()
         tuning.view.return_value.choice_matrix.iter_views.return_value = [
@@ -224,11 +225,13 @@ class TestTuneComponentsBlockSPLSDA(TestPluginBase):
         )
         tabulate.assert_has_calls(
             [
+                call(input=weighted_rate_table),
                 call(input=weighted_choices),
+                call(input=majority_rate_table),
                 call(input=majority_choices),
             ]
         )
-        self.assertEqual(mock_context.make_report.call_count, 3)
+        self.assertEqual(mock_context.make_report.call_count, 5)
 
     def test_error_rate_metadata_filters_and_labels_overall_error_rates(self):
         actual = _error_rate_metadata(
@@ -382,6 +385,7 @@ class TestComponentTuningVisualisation(TestPluginBase):
                 artifact = self.tuning_artifacts[layout]
                 data = artifact.view(PLSComponentSelectionDirFmt)
                 expected_rates = dict(data.error_rate.iter_views(pd.DataFrame))
+                expected_rate_metadata = dict(data.error_rate.iter_views(Metadata))
                 expected_choices = dict(data.choice_matrix.iter_views(Metadata))
                 lineplot = MagicMock(return_value=(MagicMock(),))
                 tabulate = MagicMock(return_value=(MagicMock(),))
@@ -391,7 +395,7 @@ class TestComponentTuningVisualisation(TestPluginBase):
                 _tune_components_block_visualisation(context, artifact)
 
                 self.assertEqual(lineplot.call_count, len(variants))
-                self.assertEqual(tabulate.call_count, len(variants))
+                self.assertEqual(tabulate.call_count, 2 * len(variants))
                 for index, (suffix, title) in enumerate(variants):
                     raw = expected_rates[Path(f"error_rate{suffix}.jsonl")]
                     expected = raw.set_index("id")
@@ -413,15 +417,30 @@ class TestComponentTuningVisualisation(TestPluginBase):
                     self.assertEqual(actual["title"], title)
                     self.assertEqual(actual["x_measure"], "component")
                     self.assertEqual(actual["y_measure"], "mean")
+                    rate_table = (
+                        tabulate.call_args_list[2 * index]
+                        .kwargs["input"]
+                        .to_dataframe()
+                    )
+                    assert_frame_equal(
+                        rate_table,
+                        expected_rate_metadata[
+                            Path(f"error_rate{suffix}.jsonl")
+                        ].to_dataframe(),
+                    )
                     choices = (
-                        tabulate.call_args_list[index].kwargs["input"].to_dataframe()
+                        tabulate.call_args_list[2 * index + 1]
+                        .kwargs["input"]
+                        .to_dataframe()
                     )
                     expected = expected_choices[
                         Path(f"choice_matrix{suffix}.jsonl")
                     ].to_dataframe()
                     assert_frame_equal(choices, expected)
-                expected_report_count = 1 if layout == "single" else 3
+                expected_report_count = 2 if layout == "single" else 5
                 self.assertEqual(context.make_report.call_count, expected_report_count)
+                for report_call in context.make_report.call_args_list[: len(variants)]:
+                    self.assertEqual(list(report_call.args[1]), ["Plot", "Table"])
                 sections = context.make_report.call_args.args[1]
                 self.assertEqual(list(sections), ["Error rates", "Component choices"])
                 if layout == "single":
