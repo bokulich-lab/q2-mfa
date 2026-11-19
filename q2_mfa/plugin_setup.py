@@ -395,8 +395,8 @@ plugin.pipelines.register_function(
     parameter_descriptions={},
     output_descriptions={
         "visualization": (
-            "Report containing error-rate plots and component-choice matrices, "
-            "grouped by voting scheme for block results."
+            "Report containing error-rate plots with corresponding tables and "
+            "component-choice matrices, grouped by voting scheme for block results."
         ),
     },
     name="Visualize sPLS-DA component tuning",
