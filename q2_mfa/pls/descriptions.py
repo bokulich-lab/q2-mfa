@@ -212,9 +212,8 @@ fit_descriptions = {
         "Features never selected for a component have a frequency of zero."
     ),
     "auc": (
-        "Per-component contrast AUC values and p-values from mixOmics perf() results. "
-        "In R, perf_result$auc[[component]] gives the matrix with contrasts as rows "
-        "and AUC and p-value as columns."
+        "Per-component contrast AUC values and p-values from mixOmics "
+        "perf_result$auc."
     ),
     "feature_component_correlation": (
         "Pearson correlations between features selected on any fitted component and "
