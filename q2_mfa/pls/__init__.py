@@ -22,9 +22,13 @@ from .types import (
     PLSComponentSelectionDirFmt,
     PLSFeatureSelection,
     PLSFeatureSelectionDirFmt,
+    PLSFit,
+    PLSFitDirFmt,
 )
 
 __all__ = [
+    "PLSFit",
+    "PLSFitDirFmt",
     "PLSFeatureSelection",
     "PLSFeatureSelectionDirFmt",
     "_select_features_block_splsda",

@@ -1,0 +1,3 @@
+{"doctype":{"name":"table.jsonl","format":"application/x-json-lines","version":"1.0"},"direction":"row","style":"key:value","fields":[{"name":"id","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"block","type":"string","missing":false,"title":"","description":"","extra":{}},{"name":"comp1","type":"number","missing":false,"title":"","description":"","extra":{}}],"index":[],"title":"","description":"Block weights from mixOmics block.splsda() model$weights. Each weight is a signed Pearson correlation across samples between an input block's scores and the outcome block Y's scores for the same component.","extra":{}}
+{"id":"1","block":"metabolomics","comp1":0.9661030902}
+{"id":"2","block":"microbiome","comp1":0.859182317}
