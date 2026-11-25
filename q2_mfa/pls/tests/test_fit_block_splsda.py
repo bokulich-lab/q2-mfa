@@ -124,7 +124,7 @@ class TestFitBlockSPLSDA(TestPluginBase):
                     "block", sort=False
                 )
             }
-        cls.nutrimouse_tables, _ = nutrimouse_factory()
+        cls.nutrimouse_tables, _ = nutrimouse_factory(unbalanced=True)
         cls.nutrimouse_weights = (
             cls.nutrimouse_expected["weights"].set_index("block").drop(columns="id")
         )

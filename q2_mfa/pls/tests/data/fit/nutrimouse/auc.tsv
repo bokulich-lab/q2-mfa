@@ -1,0 +1,23 @@
+# Reference values generated independently in R with mixOmics 6.34.0.
+# Data: filtered nutrimouse dataset bundled with mixOmics; outcome: diet.
+# Dropped the last mouse in each of lin, ref, and sun in dataset order
+# (sample IDs 39, 33, 40) from both blocks and the diet labels.
+# Retained 37 mice: coc = 8, fish = 8, lin = 7, ref = 7, sun = 7.
+# Model: ncomp = 2; keepX = list(gene = c(5, 5), lipid = c(9, 5)).
+# Design: gene-lipid = lipid-gene = 0.9; diagonal = 0; links to Y = 1.
+# scale = TRUE; tol = 1e-6; max.iter = 100; near.zero.var = FALSE.
+# Seed: 1. perf: Mfold, folds = 7, nrepeat = 10, dist = all, auc = TRUE.
+# perf: signif.threshold = 0.01; BiocParallel::SerialParam().
+# Source: perf$auc (mixOmics-returned AUC summaries, not held-out CV ROC coordinates)
+# Reshaped only in R to fit output columns, with one-based row IDs.
+id	component	contrast	auc	p_value
+1	1	coc vs Other(s)	0.875642857142857	0.111510849142857
+2	1	fish vs Other(s)	0.774952142857143	0.143648373571429
+3	1	lin vs Other(s)	0.676089285714286	0.308645748571429
+4	1	ref vs Other(s)	0.577267857142857	0.500559142857143
+5	1	sun vs Other(s)	0.707839285714286	0.373474919285714
+6	2	coc vs Other(s)	0.974832857142857	0.000316991142857143
+7	2	fish vs Other(s)	0.883832857142857	0.00437437971428572
+8	2	lin vs Other(s)	0.785704285714286	0.0840079228571429
+9	2	ref vs Other(s)	0.661297857142857	0.307604714285714
+10	2	sun vs Other(s)	0.982624285714286	0.000416872857142857

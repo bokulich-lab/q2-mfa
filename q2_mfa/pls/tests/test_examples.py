@@ -88,6 +88,27 @@ class TestUsageExamples(TestPluginBase):
             index_col="id",
             dtype={"id": str},
         )
+        cls.expected_fit = {
+            name: pd.read_csv(
+                instance.get_data_path(f"fit/nutrimouse/{name.replace('_', '-')}.tsv"),
+                sep="\t",
+                comment="#",
+                dtype={"id": str, "sample": str},
+            )
+            for name in (
+                "loadings",
+                "scores",
+                "weights",
+                "prop_expl_var",
+                "ave",
+                "feature_stability",
+                "auc",
+                "error_rate_weighted",
+                "error_rate_majority",
+                "feature_component_correlation",
+                "feature_similarity",
+            )
+        }
         cls.expected_component_tuning = {}
         for vote in ("weighted", "majority"):
             for table in ("error-rates", "choices"):
@@ -179,7 +200,7 @@ class TestUsageExamples(TestPluginBase):
         )
 
     def test_fit_block_splsda_nutrimouse(self):
-        """Fits Nutrimouse using the component and feature selection artifacts."""
+        """Compares every output of the filtered Nutrimouse fit with R fixtures."""
         use = ExecutionUsage()
         action = self.plugin.methods["fit_block_splsda"]
         action.examples["nutrimouse"](use)
@@ -188,11 +209,9 @@ class TestUsageExamples(TestPluginBase):
         fitted = outputs["fit_nutrimouse"].execute().view(PLSFitDirFmt)
         fitted.validate()
 
-        loadings = fitted.loadings.view(pd.DataFrame).set_index("block").drop(index="Y")
-        selected_counts = (
-            loadings.filter(regex=r"^comp\d+$").ne(0).groupby(level="block").sum()
-        )
-        self.assertEqual(
-            selected_counts.to_dict(orient="index"),
-            {"gene": {"comp1": 5, "comp2": 5}, "lipid": {"comp1": 9, "comp2": 5}},
-        )
+        for name, expected in self.expected_fit.items():
+            with self.subTest(table=name):
+                observed = getattr(fitted, name).view(pd.DataFrame)
+                assert_frame_equal(
+                    observed, expected, check_dtype=False, rtol=1e-8, atol=1e-10
+                )

@@ -137,7 +137,7 @@ def fit_block_splsda_nutrimouse(use):
         "with mixOmics. Use 37 mice (diet group sizes 8, 8, 7, 7, and 7). "
         "Illustrative artifacts supply two components (weighted BER, max.dist) and "
         "keepX counts of 5,5 for gene and 9,5 for lipid. Use a gene/lipid association "
-        "weight of 0.9 and evaluate with 5-fold cross-validation and 10 repeats. "
+        "weight of 0.9 and evaluate with 7-fold cross-validation and 10 repeats. "
         "Increase the number of folds and repeats for a real analysis."
     )
     use.comment("DOI: https://doi.org/10.1002/hep.21510")
@@ -164,13 +164,13 @@ def fit_block_splsda_nutrimouse(use):
             max_iter=100,
             near_zero_var=False,
             validation="Mfold",
-            folds=5,
+            folds=7,
             nrepeat=10,
             signif_threshold=0.01,
             distance="max.dist",
             measure="BER",
             weighted=True,
-            seed=42,
+            seed=1,
             threads=1,
         ),
         use.UsageOutputNames(pls_results="fit_nutrimouse"),
