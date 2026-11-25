@@ -15,7 +15,7 @@ from rachis.plugin.testing import TestPluginBase
 from rpy2.robjects import r
 
 from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt
-from q2_mfa.pls.examples import nutrimouse_tables_factory
+from q2_mfa.pls.examples import nutrimouse_factory
 from q2_mfa.pls.fit_block_splsda import (
     _consensus_variates,
     _feature_component_correlations,
@@ -124,7 +124,7 @@ class TestFitBlockSPLSDA(TestPluginBase):
                     "block", sort=False
                 )
             }
-        cls.nutrimouse_tables = nutrimouse_tables_factory()
+        cls.nutrimouse_tables, _ = nutrimouse_factory()
         cls.nutrimouse_weights = (
             cls.nutrimouse_expected["weights"].set_index("block").drop(columns="id")
         )

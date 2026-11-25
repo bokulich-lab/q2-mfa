@@ -5,6 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
+from functools import cache, partial
 from importlib.resources import files
 
 import pandas as pd
@@ -25,31 +26,41 @@ base = importr("base")
 mixomics = importr("mixOmics")
 
 
-def _load_nutrimouse():
-    return mixomics.__rdata__.fetch("nutrimouse")["nutrimouse"]
+def nutrimouse_factory(unbalanced: bool = False) -> tuple[ResultCollection, Metadata]:
+    """Returns the Nutrimouse gene and lipid tables and their diet metadata.
 
-
-def _nutrimouse_table(block):
-    data_frame = base.as_data_frame(_load_nutrimouse().rx2(block))
-    with localconverter(default_converter + pandas2ri.converter):
-        table = conversion.get_conversion().rpy2py(data_frame)
-    table.index = pd.Index(table.index.astype(str), name="sample-id")
-    return Artifact.import_data(FeatureTable[Unconstrained], table)
-
-
-def nutrimouse_tables_factory():
-    return ResultCollection(
-        {"gene": _nutrimouse_table("gene"), "lipid": _nutrimouse_table("lipid")}
+    The fit example uses unequal diet group sizes to avoid a tie in the
+    leading singular values during DIABLO initialization.
+    See https://github.com/mixOmics-org/mixOmics/pull/420.
+    """
+    dataset = mixomics.__rdata__.fetch("nutrimouse")["nutrimouse"]
+    sample_ids = list(base.rownames(dataset.rx2("gene")))
+    diets = list(base.as_character(dataset.rx2("diet")))
+    metadata = pd.DataFrame(
+        {"diet": diets}, index=pd.Index(sample_ids, name="sample-id")
     )
+    if unbalanced:
+        reduced_diets = metadata.loc[metadata["diet"].isin(["lin", "ref", "sun"])]
+        metadata = metadata.drop(reduced_diets.groupby("diet").tail(1).index)
+
+    tables = {}
+    for block in ("gene", "lipid"):
+        data_frame = base.as_data_frame(dataset.rx2(block))
+        with localconverter(default_converter + pandas2ri.converter):
+            table = conversion.get_conversion().rpy2py(data_frame)
+        table.index = pd.Index(table.index.astype(str), name="sample-id")
+        table = table.loc[metadata.index]
+        tables[block] = Artifact.import_data(FeatureTable[Unconstrained], table)
+    return ResultCollection(tables), Metadata(metadata)
 
 
-def nutrimouse_metadata_factory():
-    data = _load_nutrimouse()
-    sample_ids = list(base.rownames(data.rx2("gene")))
-    diets = list(base.as_character(data.rx2("diet")))
-    return Metadata(
-        pd.DataFrame({"diet": diets}, index=pd.Index(sample_ids, name="sample-id"))
-    )
+def _init_nutrimouse_inputs(use, unbalanced: bool = False):
+    """Registers feature tables and the diet response for a Nutrimouse example."""
+    inputs = cache(partial(nutrimouse_factory, unbalanced=unbalanced))
+    tables = use.init_artifact_collection("nutrimouse_tables", lambda: inputs()[0])
+    metadata = use.init_metadata("nutrimouse_metadata", lambda: inputs()[1])
+    diet = use.get_metadata_column("diet", "diet", metadata)
+    return tables, diet
 
 
 def nutrimouse_tuned_ncomp_factory():
@@ -91,11 +102,7 @@ def select_features_block_splsda_nutrimouse(use):
         "matrix with integration weight 0.9."
     )
     use.comment("DOI: https://doi.org/10.1002/hep.21510")
-    tables = use.init_artifact_collection(
-        "nutrimouse_tables", nutrimouse_tables_factory
-    )
-    metadata = use.init_metadata("nutrimouse_metadata", nutrimouse_metadata_factory)
-    diet = use.get_metadata_column("diet", "diet", metadata)
+    tables, diet = _init_nutrimouse_inputs(use)
     tuned_ncomp = use.init_artifact(
         "nutrimouse_tuned_ncomp", nutrimouse_tuned_ncomp_factory
     )
@@ -124,21 +131,17 @@ def select_features_block_splsda_nutrimouse(use):
 
 
 def fit_block_splsda_nutrimouse(use):
-    """Fits nutrimouse DIABLO with the independent R fixtures' settings."""
+    """Fits DIABLO on a Nutrimouse subset with unequal diet group sizes."""
     use.comment(
         "Fit the nutrimouse diet outcome using the gene and lipid blocks bundled "
-        "with mixOmics. Illustrative prebuilt artifacts supply two components "
-        "(weighted BER, max.dist) and keepX counts of 5,5 for gene and 9,5 for "
-        "lipid. Use the gene/lipid association matrix with integration weight "
-        "0.9 and evaluate with 5-fold cross-validation and 10 repeats. Increase "
-        "the number of folds and repeats for a real analysis."
+        "with mixOmics. Use 37 mice (diet group sizes 8, 8, 7, 7, and 7). "
+        "Illustrative artifacts supply two components (weighted BER, max.dist) and "
+        "keepX counts of 5,5 for gene and 9,5 for lipid. Use a gene/lipid association "
+        "weight of 0.9 and evaluate with 5-fold cross-validation and 10 repeats. "
+        "Increase the number of folds and repeats for a real analysis."
     )
     use.comment("DOI: https://doi.org/10.1002/hep.21510")
-    tables = use.init_artifact_collection(
-        "nutrimouse_tables", nutrimouse_tables_factory
-    )
-    metadata = use.init_metadata("nutrimouse_metadata", nutrimouse_metadata_factory)
-    diet = use.get_metadata_column("diet", "diet", metadata)
+    tables, diet = _init_nutrimouse_inputs(use, unbalanced=True)
     tuned_components = use.init_artifact(
         "nutrimouse_tuned_ncomp", nutrimouse_tuned_ncomp_factory
     )
@@ -186,11 +189,7 @@ def tune_components_block_splsda_nutrimouse(use):
         "information, consult the mixOmics documentation."
     )
     use.comment("DOI: https://doi.org/10.1002/hep.21510")
-    tables = use.init_artifact_collection(
-        "nutrimouse_tables", nutrimouse_tables_factory
-    )
-    metadata = use.init_metadata("nutrimouse_metadata", nutrimouse_metadata_factory)
-    diet = use.get_metadata_column("diet", "diet", metadata)
+    tables, diet = _init_nutrimouse_inputs(use)
     design_matrix = use.init_artifact(
         "nutrimouse_association_matrix", nutrimouse_association_matrix_factory
     )
