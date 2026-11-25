@@ -179,9 +179,9 @@ class TestUsageExamples(TestPluginBase):
         )
 
     def test_fit_block_splsda_nutrimouse(self):
-        """Fits Nutrimouse using the component and feature selection artifacts."""
+        """Fits Nutrimouse using tuning artifacts and checks the report."""
         use = ExecutionUsage()
-        action = self.plugin.methods["fit_block_splsda"]
+        action = self.plugin.pipelines["fit_block_splsda"]
         action.examples["nutrimouse"](use)
         outputs = use.render()
 
@@ -195,4 +195,20 @@ class TestUsageExamples(TestPluginBase):
         self.assertEqual(
             selected_counts.to_dict(orient="index"),
             {"gene": {"comp1": 5, "comp2": 5}, "lipid": {"comp1": 9, "comp2": 5}},
+        )
+
+        report = outputs["fit_nutrimouse_plots"].execute()
+        with (report._archiver.data_dir / "subfigures" / "index.json").open() as fh:
+            report_index = json.load(fh)
+        self.assertEqual(
+            list(report_index), ["Sample scores", "Feature correlations", "Tables"]
+        )
+        self.assertEqual(
+            list(report_index["Sample scores"]["children"]),
+            [
+                "block: gene",
+                "block: lipid",
+                "method: average",
+                "method: weighted_average",
+            ],
         )

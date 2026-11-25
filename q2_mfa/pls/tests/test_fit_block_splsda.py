@@ -5,17 +5,24 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-from unittest.mock import Mock
+import json
+from importlib.resources import files
+from unittest.mock import MagicMock, Mock
 
 import pandas as pd
 from q2_types.tabular import TableJSONLFileFormat
-from rachis import Artifact
+from rachis import Artifact, Metadata
 from rachis.plugin import CaptureHolder, Collection, Str
 from rachis.plugin.testing import TestPluginBase
 from rpy2.robjects import r
 
-from q2_mfa.pls import PLSFeatureSelection, PLSFeatureSelectionDirFmt
-from q2_mfa.pls.examples import nutrimouse_tables_factory
+from q2_mfa.pls import (
+    PLSFeatureSelection,
+    PLSFeatureSelectionDirFmt,
+    PLSFit,
+    PLSFitDirFmt,
+)
+from q2_mfa.pls.examples import nutrimouse_metadata_factory, nutrimouse_tables_factory
 from q2_mfa.pls.fit_block_splsda import (
     _consensus_variates,
     _feature_component_correlations,
@@ -27,8 +34,102 @@ from q2_mfa.pls.fit_block_splsda import (
     _r_named_frames,
     _r_prop_expl_var_to_dataframe,
     _resolve_fit_keepx,
+    fit_block_splsda,
 )
 from q2_mfa.pls.select_features_block_splsda import _serialize_feature_selection
+from q2_mfa.plugin_setup import plugin
+
+
+class TestFitBlockSPLSDAPipeline(TestPluginBase):
+    package = "q2_mfa.pls.tests"
+
+    @classmethod
+    def setUpClass(cls):
+        """Fits the bundled nutrimouse dataset through the real R implementation."""
+        super().setUpClass()
+        cls.tables = nutrimouse_tables_factory()
+        cls.response = nutrimouse_metadata_factory().get_column("diet")
+        (cls.fitted,) = plugin.methods["_fit_block_splsda"](
+            tables=cls.tables,
+            y=cls.response,
+            design_weight=0.9,
+            ncomp=2,
+            keepx={"gene": "5,5", "lipid": "9,5"},
+            folds=2,
+            nrepeat=3,
+            seed=42,
+        )
+
+    def test_fit_pipeline_calls_actions(self):
+        """Forwards artifacts and parameters through the pipeline context."""
+        fit = MagicMock(return_value=(self.fitted,))
+        visualise = MagicMock(return_value=(Mock(),))
+        ctx = MagicMock()
+        ctx.get_action.side_effect = [fit, visualise]
+        fit_block_splsda(
+            ctx,
+            tables=self.tables,
+            y=self.response,
+            design_weight=0.9,
+            ncomp=2,
+            keepx={"gene": "5,5", "lipid": "9,5"},
+            seed=42,
+        )
+        self.assertIs(fit.call_args.kwargs["tables"], self.tables)
+        self.assertIs(fit.call_args.kwargs["y"], self.response)
+        self.assertEqual(fit.call_args.kwargs["keepx"], {"gene": "5,5", "lipid": "9,5"})
+        self.assertEqual(fit.call_args.kwargs["seed"], 42)
+        visualise.assert_called_once_with(pls_results=self.fitted, y=self.response)
+
+
+class TestFitBlockSPLSDAVisualiser(TestPluginBase):
+    package = "q2_mfa.pls.tests"
+
+    def setUp(self):
+        super().setUp()
+
+        fixture = files("q2_mfa.pls.types.tests") / "data" / "pls-fit"
+        self.fitted = Artifact.import_data(
+            PLSFit,
+            str(fixture),
+            view_type=PLSFitDirFmt,
+        )
+        self.target = Metadata(
+            pd.DataFrame(
+                {"condition": ["Gastrectomy", "Gastrectomy", "Healthy", "Healthy"]},
+                index=pd.Index(["1", "2", "3", "4"], name="sample-id"),
+            )
+        ).get_column("condition")
+
+    def test_visualiser_single_component(self):
+        (report,) = self.plugin.pipelines["_fit_block_splsda_visualiser"](
+            pls_results=self.fitted, y=self.target
+        )
+
+        data_dir = report._archiver.data_dir
+        with (data_dir / "subfigures" / "index.json").open() as fh:
+            index = json.load(fh)
+        self.assertEqual(
+            list(index), ["Sample scores", "Feature correlations", "Tables"]
+        )
+
+        score_plots = index["Sample scores"]["children"]
+        self.assertEqual(
+            list(score_plots),
+            [
+                "block: metabolomics",
+                "block: microbiome",
+                "method: average",
+                "method: weighted_average",
+            ],
+        )
+        plots = {**score_plots, "Feature correlations": index["Feature correlations"]}
+        for name, entry in plots.items():
+            with self.subTest(plot=name):
+                html = (data_dir / entry["index"]).read_text()
+                self.assertIn('"name": "percentiles_table"', html)
+
+        self.assertEqual(len(index["Tables"]["children"]), 11)
 
 
 class TestFitBlockSPLSDA(TestPluginBase):

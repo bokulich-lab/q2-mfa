@@ -10,7 +10,8 @@ import secrets
 
 import numpy as np
 import pandas as pd
-from rachis import CategoricalMetadataColumn
+from q2templates.reports import matryoshka_template
+from rachis import CategoricalMetadataColumn, Metadata
 from rachis.plugin import CaptureHolder
 from rpy2.robjects import ListVector
 from rpy2.robjects.packages import importr
@@ -39,7 +40,7 @@ mixomics = importr("mixOmics")
 descriptions = {**fit_descriptions, **tune_components_descriptions}
 
 
-def fit_block_splsda(
+def _fit_block_splsda(
     tables: pd.DataFrame,
     y: CategoricalMetadataColumn,
     design_matrix: pd.DataFrame = None,
@@ -112,6 +113,155 @@ def fit_block_splsda(
         **{"signif.threshold": signif_threshold},
     )
     return _serialize_fit(model, perf_result)
+
+
+def fit_block_splsda(
+    ctx,
+    tables,
+    y,
+    design_matrix=None,
+    design_weight=None,
+    tuned_components=None,
+    ncomp=None,
+    keepx=None,
+    feature_selection=None,
+    scale=True,
+    tol=1e-6,
+    max_iter=100,
+    near_zero_var=False,
+    validation="Mfold",
+    folds=10,
+    nrepeat=3,
+    signif_threshold=0.01,
+    distance="max.dist",
+    measure="BER",
+    weighted=True,
+    seed=None,
+    threads=1,
+):
+    """Fits DIABLO and reports sample scores and feature correlations.
+
+    Returns:
+        tuple[Artifact, Visualization]: Fitted model tables and an interactive
+            report corresponding to mixOmics plotIndiv() and plotVar().
+    """
+    fit_kwargs = locals().copy()
+    fit_kwargs.pop("ctx")
+
+    fit = ctx.get_action("mfa", "_fit_block_splsda")
+    visualise = ctx.get_action("mfa", "_fit_block_splsda_visualiser")
+    (pls_results,) = fit(**fit_kwargs)
+    (visualization,) = visualise(pls_results=pls_results, y=y)
+    return pls_results, visualization
+
+
+def _fit_block_splsda_visualiser(ctx, pls_results, y):
+    """Plots fitted sample scores and selected feature-component correlations.
+
+    Uses per-block and consensus sample scores for plotIndiv()-style plots,
+    and feature-component correlations for a plotVar()-style correlation
+    scatterplot. All fitted components are selectable in vizard; components
+    one and two are initially shown. Single-component fits use boxplots
+    grouped by target class for sample scores and by block for feature
+    correlations. The report also includes the complete fitted tables.
+    """
+    boxplot = ctx.get_action("vizard", "boxplot")
+    scatterplot = ctx.get_action("vizard", "scatterplot_2d")
+    correlation_plot = ctx.get_action("vizard", "scatterplot_correlation")
+    tabulate = ctx.get_action("metadata", "tabulate")
+
+    fitted = pls_results.view(PLSFitDirFmt)
+    block_names = fitted.weights.view(pd.DataFrame)["block"].unique()
+    score_table = fitted.scores.view(pd.DataFrame)
+    feature_metadata = fitted.feature_component_correlation.view(Metadata)
+
+    axes = [column for column in score_table.columns if column.startswith("comp")]
+    single_component = len(axes) == 1
+    target = y.to_series()
+    score_plots = {}
+    for group, names in (
+        ("block", block_names),
+        ("method", ("average", "weighted_average")),
+    ):
+        for name in names:
+            plot_scores = score_table.loc[
+                score_table["block"] == name, ["sample", *axes]
+            ].set_index("sample")
+            plot_scores["Target"] = target
+            metadata = Metadata(plot_scores.rename_axis("sample-id"))
+            title = f"DIABLO sample scores: {name}"
+            if single_component:
+                (plot,) = boxplot(
+                    metadata=metadata,
+                    distribution_measure=axes[0],
+                    group_by="Target",
+                    box_orientation="vertical",
+                    title=title,
+                )
+            else:
+                (plot,) = scatterplot(
+                    metadata=metadata,
+                    x_measure=axes[0],
+                    y_measure=axes[1],
+                    color_by="Target",
+                    title=title,
+                )
+            score_plots[f"{group}: {name}"] = plot
+
+    if single_component:
+        (feature_plot,) = boxplot(
+            metadata=feature_metadata,
+            distribution_measure=axes[0],
+            group_by="block",
+            box_orientation="vertical",
+            title="DIABLO feature-component correlations",
+        )
+    else:
+        (feature_plot,) = correlation_plot(
+            metadata=feature_metadata,
+            x_measure=axes[0],
+            y_measure=axes[1],
+            color_by="block",
+            title="DIABLO feature-component correlations",
+        )
+
+    scores = ctx.make_report(
+        matryoshka_template,
+        score_plots,
+        descriptions={name: descriptions["scores"] for name in score_plots},
+    )
+    table_labels = {
+        "loadings": "Loadings",
+        "scores": "Scores",
+        "weights": "Block weights",
+        "prop_expl_var": "Proportion of explained variance",
+        "ave": "Average variance explained",
+        "feature_stability": "Feature stability",
+        "auc": "AUC",
+        "error_rate_weighted": "Weighted-vote error rates",
+        "error_rate_majority": "Majority-vote error rates",
+        "feature_component_correlation": "Feature-component correlations",
+        "feature_similarity": "Feature similarities",
+    }
+    tables = {}
+    table_descriptions = {}
+    for name, label in table_labels.items():
+        (tables[label],) = tabulate(input=getattr(fitted, name).view(Metadata))
+        table_descriptions[label] = descriptions[name]
+    table_report = ctx.make_report(
+        matryoshka_template, tables, descriptions=table_descriptions
+    )
+    return ctx.make_report(
+        matryoshka_template,
+        {
+            "Sample scores": scores,
+            "Feature correlations": feature_plot,
+            "Tables": table_report,
+        },
+        descriptions={
+            "Feature correlations": fit_descriptions["feature_component_correlation"],
+        },
+    )
 
 
 def _serialize_fit(model, perf_result) -> PLSFitDirFmt:

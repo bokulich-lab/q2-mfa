@@ -36,6 +36,8 @@ from q2_mfa.pls import (
     PLSFeatureSelectionDirFmt,
     PLSFit,
     PLSFitDirFmt,
+    _fit_block_splsda,
+    _fit_block_splsda_visualiser,
     _select_features_block_splsda,
     _select_features_block_splsda_visualiser,
     _tune_components_block_splsda,
@@ -579,7 +581,7 @@ fit_block_splsda_parameter_descriptions = {
 }
 
 plugin.methods.register_function(
-    function=fit_block_splsda,
+    function=_fit_block_splsda,
     inputs={
         "tables": Collection[FeatureTable[Unconstrained]],
         "design_matrix": AssociationMatrix,
@@ -603,6 +605,52 @@ plugin.methods.register_function(
     description=(
         "Fits a mixOmics block.splsda model, also known as DIABLO, from "
         "supplied or previously selected components and retained feature counts."
+    ),
+    citations=[citations["rohart2017mixomics"]],
+)
+
+plugin.pipelines.register_function(
+    function=_fit_block_splsda_visualiser,
+    inputs={"pls_results": PLSFit},
+    parameters={"y": MetadataColumn[Categorical]},
+    outputs=[("visualization", Visualization)],
+    input_descriptions={"pls_results": "Fitted DIABLO output tables."},
+    parameter_descriptions={"y": "Target classes used to color sample scores."},
+    output_descriptions={
+        "visualization": "Sample-score and feature-correlation plots."
+    },
+    name="Visualize fitted DIABLO block sparse PLS-DA",
+    description="Plots sample scores and selected feature-component correlations.",
+)
+
+plugin.pipelines.register_function(
+    function=fit_block_splsda,
+    inputs={
+        "tables": Collection[FeatureTable[Unconstrained]],
+        "design_matrix": AssociationMatrix,
+        "tuned_components": PLSComponentSelection,
+        "feature_selection": PLSFeatureSelection,
+    },
+    parameters=fit_block_splsda_parameters,
+    outputs=[("pls_results", PLSFit), ("visualization", Visualization)],
+    input_descriptions={
+        **component_tuning_input_descriptions,
+        "tables": (
+            "Named feature tables used as DIABLO blocks. The tables and response "
+            "are aligned to shared sample IDs before fitting."
+        ),
+        "tuned_components": "Optional artifact used to determine ncomp.",
+        "feature_selection": "Optional artifact supplying selected keepX values.",
+    },
+    parameter_descriptions=fit_block_splsda_parameter_descriptions,
+    output_descriptions={
+        "pls_results": "Final DIABLO block sPLS-DA output tables.",
+        "visualization": "Sample-score and feature-correlation plots.",
+    },
+    name="Fit DIABLO block sparse PLS-DA",
+    description=(
+        "Fits DIABLO and creates interactive sample-score and selected "
+        "feature-correlation plots corresponding to plotIndiv() and plotVar()."
     ),
     citations=[citations["rohart2017mixomics"]],
     examples={"nutrimouse": fit_block_splsda_nutrimouse},

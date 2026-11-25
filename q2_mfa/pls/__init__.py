@@ -5,7 +5,11 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-from .fit_block_splsda import fit_block_splsda
+from .fit_block_splsda import (
+    _fit_block_splsda,
+    _fit_block_splsda_visualiser,
+    fit_block_splsda,
+)
 from .select_features_block_splsda import (
     _select_features_block_splsda,
     _select_features_block_splsda_visualiser,
@@ -31,6 +35,8 @@ __all__ = [
     "PLSFit",
     "PLSFitDirFmt",
     "fit_block_splsda",
+    "_fit_block_splsda",
+    "_fit_block_splsda_visualiser",
     "PLSFeatureSelection",
     "PLSFeatureSelectionDirFmt",
     "_select_features_block_splsda",
