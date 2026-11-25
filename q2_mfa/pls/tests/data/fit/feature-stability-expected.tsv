@@ -1,0 +1,5 @@
+feature	block	comp1	comp2
+feature_a	block_a	0.6	0.5
+feature_a	block_b	0.3	0.8
+feature_b	block_a	0.3	0
+feature_c	block_a	0.5	0

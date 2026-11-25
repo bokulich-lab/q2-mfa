@@ -1,0 +1,32 @@
+# Reference values generated independently in R with mixOmics 6.34.0.
+# Data: the nutrimouse dataset bundled with mixOmics; outcome: diet.
+# Model: ncomp = 2; keepX = list(gene = c(5, 5), lipid = c(9, 5)).
+# Design: gene-lipid = lipid-gene = 0.9; diagonal = 0; links to Y = 1.
+# scale = TRUE; tol = 1e-6; max.iter = 100; near.zero.var = FALSE.
+# Seed: 42. perf: Mfold, folds = 5, nrepeat = 10, dist = all, auc = TRUE.
+# perf: signif.threshold = 0.01; BiocParallel::SerialParam().
+# Source: plotVar(model, comp = 1:2, plot = FALSE): x and y coordinates
+# Reshaped only in R to fit output columns, with one-based row IDs.
+id	feature	block	comp1	comp2
+1	CYP3A11	gene	0.360477069898682	0.825508773559846
+2	FAT	gene	0.194716260735842	-0.547342453171592
+3	GSTa	gene	0.701990835030058	0.345044168466913
+4	GSTpi2	gene	0.0447935336949395	0.912816978718725
+5	HPNCL	gene	0.814674828486675	0.263930154762612
+6	Lpin	gene	0.766819270172273	-0.269653196742261
+7	Lpin1	gene	0.781466640769673	-0.266789231935248
+8	Lpin2	gene	0.918324362543278	-0.00896126626075211
+9	Ntcp	gene	-0.0116089947500136	-0.565777669787016
+10	SR.BI	gene	0.0912310999967957	-0.511434039801398
+11	C14.0	lipid	0.430075593869103	-0.73387971145881
+12	C16.0	lipid	0.51176623724798	0.299344482505807
+13	C16.1n.7	lipid	0.49932500041005	-0.747255641544874
+14	C18.1n.9	lipid	0.284063293585603	-0.806277755896592
+15	C18.1n.7	lipid	0.404269611727073	-0.826798222982921
+16	C20.3n.9	lipid	0.407613754968524	-0.394205338825123
+17	C18.2n.6	lipid	-0.852599244226526	0.193413935450971
+18	C20.2n.6	lipid	-0.952063774445435	-0.101212299815299
+19	C20.4n.6	lipid	-0.575956784441908	0.00628650269982477
+20	C22.4n.6	lipid	-0.913911520447073	-0.180993176579486
+21	C22.5n.6	lipid	-0.707919917778162	-0.202328721423695
+22	C22.6n.3	lipid	0.270713032212254	0.928748129864304
