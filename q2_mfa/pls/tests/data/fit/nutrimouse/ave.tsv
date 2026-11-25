@@ -1,0 +1,18 @@
+# Reference values generated independently in R with mixOmics 6.34.0.
+# Data: filtered nutrimouse dataset bundled with mixOmics; outcome: diet.
+# Dropped the last mouse in each of lin, ref, and sun in dataset order
+# (sample IDs 39, 33, 40) from both blocks and the diet labels.
+# Retained 37 mice: coc = 8, fish = 8, lin = 7, ref = 7, sun = 7.
+# Model: ncomp = 2; keepX = list(gene = c(5, 5), lipid = c(9, 5)).
+# Design: gene-lipid = lipid-gene = 0.9; diagonal = 0; links to Y = 1.
+# scale = TRUE; tol = 1e-6; max.iter = 100; near.zero.var = FALSE.
+# Seed: 1. perf: Mfold, folds = 7, nrepeat = 10, dist = all, auc = TRUE.
+# perf: signif.threshold = 0.01; BiocParallel::SerialParam().
+# Source: model$AVE
+# Reshaped only in R to fit output columns, with one-based row IDs.
+id	block	comp1	comp2
+1	gene	0.196195191187294	0.133064443976141
+2	lipid	0.319219726305546	0.238022431056587
+3	Y	0.254442689006558	0.247327975099346
+4	AVE_outer	0.215885278355647	0.152074275375493
+5	AVE_inner	0.655486741238141	0.698475524004816

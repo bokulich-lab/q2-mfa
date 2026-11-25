@@ -1,0 +1,55 @@
+# Reference values generated independently in R with mixOmics 6.34.0.
+# Data: filtered nutrimouse dataset bundled with mixOmics; outcome: diet.
+# Dropped the last mouse in each of lin, ref, and sun in dataset order
+# (sample IDs 39, 33, 40) from both blocks and the diet labels.
+# Retained 37 mice: coc = 8, fish = 8, lin = 7, ref = 7, sun = 7.
+# Model: ncomp = 2; keepX = list(gene = c(5, 5), lipid = c(9, 5)).
+# Design: gene-lipid = lipid-gene = 0.9; diagonal = 0; links to Y = 1.
+# scale = TRUE; tol = 1e-6; max.iter = 100; near.zero.var = FALSE.
+# Seed: 1. perf: Mfold, folds = 7, nrepeat = 10, dist = all, auc = TRUE.
+# perf: signif.threshold = 0.01; BiocParallel::SerialParam().
+# Source: perf$MajorityVote.error.rate and .error.rate.sd
+# Reshaped only in R to fit output columns, with one-based row IDs.
+id	distance	class	component	mean	sd
+1	max.dist	coc	1	0.425	0.134370962471642
+2	max.dist	coc	2	0.2125	0.060380736442456
+3	max.dist	fish	1	0.4375	0.147313912747197
+4	max.dist	fish	2	0.4125	0.102909075293571
+5	max.dist	lin	1	1	0
+6	max.dist	lin	2	1	0
+7	max.dist	ref	1	1	0
+8	max.dist	ref	2	1	0
+9	max.dist	sun	1	0.714285714285714	0.150584650484209
+10	max.dist	sun	2	0.185714285714286	0.117610371764081
+11	max.dist	Overall.ER	1	0.7	0.0391658830978093
+12	max.dist	Overall.ER	2	0.548648648648649	0.0361484732391691
+13	max.dist	Overall.BER	1	0.715357142857143	0.0369642377884821
+14	max.dist	Overall.BER	2	0.562142857142857	0.0358805652963606
+15	centroids.dist	coc	1	0.6	0.164570147151096
+16	centroids.dist	coc	2	0.3875	0.109449379471364
+17	centroids.dist	fish	1	0.8375	0.132418738183923
+18	centroids.dist	fish	2	0.7875	0.118585412256314
+19	centroids.dist	lin	1	0.957142857142857	0.0690065559342355
+20	centroids.dist	lin	2	0.871428571428571	0.105409255338946
+21	centroids.dist	ref	1	0.828571428571429	0.147542222712663
+22	centroids.dist	ref	2	0.671428571428571	0.178809365290653
+23	centroids.dist	sun	1	0.728571428571429	0.12508500511013
+24	centroids.dist	sun	2	0.357142857142857	0.138832187972507
+25	centroids.dist	Overall.ER	1	0.786486486486486	0.0411860520744593
+26	centroids.dist	Overall.ER	2	0.613513513513513	0.0403901112999277
+27	centroids.dist	Overall.BER	1	0.790357142857143	0.0396287333627572
+28	centroids.dist	Overall.BER	2	0.615	0.0406090257273126
+29	mahalanobis.dist	coc	1	0.6	0.164570147151096
+30	mahalanobis.dist	coc	2	0.3375	0.118585412256314
+31	mahalanobis.dist	fish	1	0.8375	0.132418738183923
+32	mahalanobis.dist	fish	2	0.7125	0.060380736442456
+33	mahalanobis.dist	lin	1	0.957142857142857	0.0690065559342355
+34	mahalanobis.dist	lin	2	0.885714285714286	0.112687233963802
+35	mahalanobis.dist	ref	1	0.828571428571429	0.147542222712663
+36	mahalanobis.dist	ref	2	0.657142857142857	0.18070158058105
+37	mahalanobis.dist	sun	1	0.728571428571429	0.12508500511013
+38	mahalanobis.dist	sun	2	0.328571428571429	0.151335700781626
+39	mahalanobis.dist	Overall.ER	1	0.786486486486486	0.0411860520744593
+40	mahalanobis.dist	Overall.ER	2	0.581081081081081	0.0627404877350636
+41	mahalanobis.dist	Overall.BER	1	0.790357142857143	0.0396287333627572
+42	mahalanobis.dist	Overall.BER	2	0.584285714285714	0.0641798069414954
