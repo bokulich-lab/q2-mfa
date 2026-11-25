@@ -200,6 +200,7 @@ def _consensus_variates(
 
 
 def _write_fit_table(output_file, table: pd.DataFrame) -> None:
+    table = table.copy()
     ids = pd.array([str(index) for index in range(1, len(table) + 1)], dtype="string")
     table.insert(0, "id", ids)
     table.attrs["description"] = descriptions[output_file.name]
